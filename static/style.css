@@ -1,0 +1,198 @@
+
+   /* Global styles */
+
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f5f7fa;      /* light neutral background */
+    color: #222;              /* dark gray text for readability */
+    padding-bottom: 40px;     /* gives some space below the page */
+}
+
+
+ 
+/* Header + Branding + Navbar */
+
+.ned-header {
+    background: #fff;                         /* clean white header */
+    border-bottom: 1px solid #dde3eb;         /* subtle divider line */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.03);    /* light shadow */
+    padding: 20px 30px 10px;
+}
+
+.ned-header h1 {
+    margin: 0;
+    font-size: 1.6rem;
+    color: #003366;           /* navy accent */
+}
+
+.ned-subtitle {
+    margin: 5px 0 15px;
+    color: #666;              /* soft gray subtitle */
+    font-size: 0.95rem;
+}
+
+/* Main navigation bar */
+.ned-nav {
+    display: flex;
+    flex-wrap: wrap;          /* keeps links on screen on smaller resolutions */
+    gap: 10px;
+    margin-top: 5px;
+}
+
+.ned-nav a {
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: #003366;
+    border: 1px solid transparent;
+}
+
+.ned-nav a:hover {
+    background: #e6edf5;      /* subtle hover */
+    border-color: #c2d4ec;
+}
+
+
+/* -----------------------
+   Page layout
+--------------------------*/
+
+.ned-main {
+    max-width: 1000px;         /* keeps content centered and readable */
+    margin: 25px auto 0;
+    padding: 0 20px;           /* prevents content from touching screen edges */
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+}
+
+
+/* -----------------------
+   Card components
+--------------------------*/
+
+.ned-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 18px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);   /* light depth */
+    text-align: left;
+}
+
+.ned-card h2 {
+    margin: 0 0 8px 0;
+    font-size: 1.1rem;
+    color: #003366;
+}
+
+.ned-card p,
+.ned-card li {
+    font-size: 0.95rem;
+    color: #444;              /* slightly softer than the body text */
+}
+
+.ned-card ul {
+    padding-left: 18px;
+    margin: 6px 0 0;
+}
+
+
+/* -----------------------
+   Links & interaction
+--------------------------*/
+
+a {
+    color: #003366;
+}
+
+a:hover {
+    color: #002348;
+}
+
+/* Placeholder button style (optional for later)
+.btn {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 6px;
+    background: #003366;
+    color: #fff;
+    text-decoration: none;
+    border: 1px solid #003366;
+}
+.btn:hover {
+    background: #002348;
+}
+*/
+
+
+/* -----------------------
+   Footer
+--------------------------*/
+
+.ned-footer {
+    text-align: center;
+    margin-top: 30px;
+    font-size: 0.85rem;
+    color: #777;
+}
+
+/* -----------------------
+   Voyage form
+--------------------------*/
+
+.voyage-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.form-row label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #003366;
+}
+
+.form-row input,
+.form-row textarea {
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid #c7d0dd;
+    font-size: 0.95rem;
+}
+
+.form-row input:focus,
+.form-row textarea:focus {
+    outline: none;
+    border-color: #003366;
+}
+
+.btn {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 7px 16px;
+    border-radius: 6px;
+    border: 1px solid #003366;
+    background: #003366;
+    color: #fff;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+
+.btn:hover {
+    background: #002348;
+}

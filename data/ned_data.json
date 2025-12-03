@@ -1,0 +1,13 @@
+{
+    "test": "hello",
+    "voyages": [
+        {
+            "departure": "Tulcea",
+            "destination": "Constanta",
+            "etd": "2025-12-11T09:00",
+            "eta": "2025-12-11T13:30",
+            "distance_nm": "90",
+            "notes": "Canal Mm36.\r\nSt\u00e2lpi \u00eenalt\u0103 tensiune Mm35.\r\nTrafic intens \u00een zona de ancorare Mm 35\r\nApe la cote reduse pe bra\u021bul Sf.Gheorghe, naviga\u021bi pe sub malul drept unde \u0219enalul permite"
+        }
+    ]
+}

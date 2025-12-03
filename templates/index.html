@@ -1,11 +1,24 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title> Nautical Essential Dashboard</title>
-<head>
-<body>
-    <h1>Nautical Essential Dashboard</h1>
-    <p>Welcome to NED- Your personal nautical assistant</p>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block title %}NED Dashboard{% endblock %}
+
+{% block content %}
+<section class="ned-card">
+    <h2>Today overview</h2>
+    <p>Here you will see your key nautical notes, reminders and quick stats.</p>
+</section>
+
+<section class="ned-card">
+    <h2>Quick actions</h2>
+    <ul>
+        <li>Add a new note</li>
+        <li>Log a trip or route</li>
+        <li>Save a frequently used checklist</li>
+    </ul>
+</section>
+
+<section class="ned-card">
+    <h2>Upcoming tasks</h2>
+    <p>Future maintenance, inspections and important dates will show up here.</p>
+</section>
+{% endblock %}

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}NED{% endblock %}</title>
+    <link rel="stylesheet" href="{{url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="ned-header">
+        <h1>Nautical Essential Dashboard</h1>
+        <p class="ned-subtitle">Welcome to NED- Your personal nauticalassistant</p>
+
+        <nav class="ned-nav">
+            <a href="{{ url_for('home') }}">Dashboar</a>
+            <a href="{{ url_for('voyage_sheet') }}">Voyage Sheet</a>
+            <a href="{{ url_for('route_planner') }}">Route planner</a>
+            <a href="{{ url_for('logbook') }}">Logbook</a>
+            <a href="{{ url_for('contacts') }}">Contacts Hub</a>
+            <a href="{{ url_for('weather') }}">Weather center</a>
+            <a href="{{ url_for('settings') }}">Settings</a>
+        </nav>
+    </header>
+
+
+    <main class="ned-main">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer class="ned-footer">
+        <small>NED – Nautical Essential Dashboard · v0.1</small>
+    </footer>
+</body>
+</html>
+
+         

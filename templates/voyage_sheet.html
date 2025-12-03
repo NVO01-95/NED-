@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Voyage Sheet · NED{% endblock %}
+
+{% block content %}
+<section class="ned-card">
+    <h2>Voyage Sheet</h2>
+    <p>Fill in the basic details for your next voyage.</p>
+
+    <form method="post" action="{{ url_for('voyage_sheet') }}" class="voyage-form">
+        <div class="form-row">
+            <label for="departure">Departure</label>
+            <input type="text" id="departure" name="departure" placeholder="Departure port / location" required>
+        </div>
+
+        <div class="form-row">
+            <label for="destination">Destination</label>
+            <input type="text" id="destination" name="destination" placeholder="Destination port / location" required>
+        </div>
+
+        <div class="form-row">
+            <label for="etd">ETD</label>
+            <input type="datetime-local" id="etd" name="etd">
+        </div>
+
+        <div class="form-row">
+            <label for="eta">ETA</label>
+            <input type="datetime-local" id="eta" name="eta">
+        </div>
+
+        <div class="form-row">
+            <label for="distance_nm">Estimated distance (NM)</label>
+            <input type="number" id="distance_nm" name="distance_nm" step="0.1" min="0">
+        </div>
+
+        <div class="form-row">
+            <label for="notes">Notes</label>
+            <textarea id="notes" name="notes" rows="3" placeholder="Observations, weather notes, cargo remarks..."></textarea>
+        </div>
+
+        <button type="submit" class="btn">Save voyage</button>
+    </form>
+</section>
+
+{% if last_voyage %}
+<section class="ned-card">
+    <h3>Last saved voyage</h3>
+    <ul>
+        <li><strong>Departure:</strong> {{ last_voyage.departure }}</li>
+        <li><strong>Destination:</strong> {{ last_voyage.destination }}</li>
+        <li><strong>ETD:</strong> {{ last_voyage.etd }}</li>
+        <li><strong>ETA:</strong> {{ last_voyage.eta }}</li>
+        <li><strong>Estimated distance (NM):</strong> {{ last_voyage.distance_nm }}</li>
+        <li><strong>Notes:</strong> {{ last_voyage.notes }}</li>
+    </ul>
+</section>
+{% endif %}
+{% endblock %}
