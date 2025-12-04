@@ -1,5 +1,4 @@
 {
-    "test": "hello",
     "voyages": [
         {
             "departure": "Tulcea",
@@ -7,7 +6,31 @@
             "etd": "2025-12-11T09:00",
             "eta": "2025-12-11T13:30",
             "distance_nm": "90",
-            "notes": "Canal Mm36.\r\nSt\u00e2lpi \u00eenalt\u0103 tensiune Mm35.\r\nTrafic intens \u00een zona de ancorare Mm 35\r\nApe la cote reduse pe bra\u021bul Sf.Gheorghe, naviga\u021bi pe sub malul drept unde \u0219enalul permite"
+            "notes": "Canal Mm36.\r\nSt\u00e2lpi \u00eenalt\u0103 tensiune Mm35.\r\nTrafic intens \u00een zona de ancorare Mm 35\r\nApe la cote reduse pe bra\u021bul Sf.Gheorghe, naviga\u021bi pe sub malul drept unde \u0219enalul permite",
+            "checklist": {
+                "fuel": true,
+                "weather": true,
+                "crew": true,
+                "documents": true,
+                "safety": true
+            }
+        },
+        {
+            "departure": "Tulcea",
+            "destination": "Instanbul",
+            "etd": "2025-12-02T11:22",
+            "eta": "2025-12-06T14:30",
+            "distance_nm": "350",
+            "notes": "A lot of mines and ROV near Sf. Gheroghe and very shallow waters along Sf.Gheorghe branch"
+        },
+        {
+            "departure": "Constanta",
+            "destination": "Instanbul",
+            "etd": "2025-12-03T13:50",
+            "eta": "2025-12-05T14:49",
+            "distance_nm": "110",
+            "notes": "",
+            "checklist": {}
         }
     ]
 }

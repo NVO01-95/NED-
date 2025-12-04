@@ -8,51 +8,195 @@
     <p>Fill in the basic details for your next voyage.</p>
 
     <form method="post" action="{{ url_for('voyage_sheet') }}" class="voyage-form">
+        <!-- Hidden field used when editing an existing voyage -->
+        <input type="hidden" name="voyage_index" value="{{ edit_index if editing else '' }}">
+
         <div class="form-row">
             <label for="departure">Departure</label>
-            <input type="text" id="departure" name="departure" placeholder="Departure port / location" required>
+            <input
+                type="text"
+                id="departure"
+                name="departure"
+                placeholder="Departure port / location"
+                value="{{ form_voyage.departure if form_voyage else '' }}"
+                required
+            >
         </div>
 
         <div class="form-row">
             <label for="destination">Destination</label>
-            <input type="text" id="destination" name="destination" placeholder="Destination port / location" required>
+            <input
+                type="text"
+                id="destination"
+                name="destination"
+                placeholder="Destination port / location"
+                value="{{ form_voyage.destination if form_voyage else '' }}"
+                required
+            >
         </div>
 
         <div class="form-row">
             <label for="etd">ETD</label>
-            <input type="datetime-local" id="etd" name="etd">
+            <input
+                type="datetime-local"
+                id="etd"
+                name="etd"
+                value="{{ form_voyage.etd if form_voyage and form_voyage.etd else '' }}"
+            >
         </div>
 
         <div class="form-row">
             <label for="eta">ETA</label>
-            <input type="datetime-local" id="eta" name="eta">
+            <input
+                type="datetime-local"
+                id="eta"
+                name="eta"
+                value="{{ form_voyage.eta if form_voyage and form_voyage.eta else '' }}"
+            >
         </div>
 
         <div class="form-row">
             <label for="distance_nm">Estimated distance (NM)</label>
-            <input type="number" id="distance_nm" name="distance_nm" step="0.1" min="0">
+            <input
+                type="number"
+                id="distance_nm"
+                name="distance_nm"
+                step="0.1"
+                min="0"
+                value="{{ form_voyage.distance_nm if form_voyage and form_voyage.distance_nm else '' }}"
+            >
         </div>
 
         <div class="form-row">
             <label for="notes">Notes</label>
-            <textarea id="notes" name="notes" rows="3" placeholder="Observations, weather notes, cargo remarks..."></textarea>
+            <textarea
+                id="notes"
+                name="notes"
+                rows="3"
+                placeholder="Observations, traffic, shallow areas, local tips..."
+            >{{ form_voyage.notes if form_voyage and form_voyage.notes else '' }}</textarea>
         </div>
 
-        <button type="submit" class="btn">Save voyage</button>
+        <button type="submit" class="btn">
+            {% if editing %}Update voyage{% else %}Save voyage{% endif %}
+        </button>
     </form>
 </section>
 
-{% if last_voyage %}
+{% if voyages %}
 <section class="ned-card">
-    <h3>Last saved voyage</h3>
-    <ul>
-        <li><strong>Departure:</strong> {{ last_voyage.departure }}</li>
-        <li><strong>Destination:</strong> {{ last_voyage.destination }}</li>
-        <li><strong>ETD:</strong> {{ last_voyage.etd }}</li>
-        <li><strong>ETA:</strong> {{ last_voyage.eta }}</li>
-        <li><strong>Estimated distance (NM):</strong> {{ last_voyage.distance_nm }}</li>
-        <li><strong>Notes:</strong> {{ last_voyage.notes }}</li>
-    </ul>
+    <h3>Saved voyages</h3>
+    <p>Quick overview of all voyages stored so far.</p>
+
+    <table class="voyage-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Departure → Destination</th>
+                <th>ETD / ETA</th>
+                <th>Distance (NM)</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for v in voyages %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>
+                    <strong>{{ v.departure }}</strong>
+                    &rarr;
+                    <strong>{{ v.destination }}</strong>
+                </td>
+                <td>
+                    <div class="voyage-time">
+                        <span>ETD: {{ v.etd or "-" }}</span><br>
+                        <span>ETA: {{ v.eta or "-" }}</span>
+                    </div>
+                </td>
+                <td>{{ v.distance_nm or "-" }}</td>
+                <td>
+                    <div class="voyage-actions">
+                        <!-- See notes -->
+                        <form method="get" action="{{ url_for('voyage_sheet') }}">
+                            <input type="hidden" name="view" value="{{ loop.index0 }}">
+                            <button type="submit" class="btn btn-secondary btn-small">
+                                See notes
+                            </button>
+                        </form>
+
+                        <!-- Edit -->
+                        <form method="get" action="{{ url_for('voyage_sheet') }}">
+                            <input type="hidden" name="edit" value="{{ loop.index0 }}">
+                            <button type="submit" class="btn btn-secondary btn-small">
+                                Edit
+                            </button>
+                        </form>
+
+                        <!-- Delete -->
+                        <form method="post" action="{{ url_for('delete_voyage', index=loop.index0) }}">
+                            <button type="submit" class="btn btn-danger btn-small">
+                                Delete
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </section>
 {% endif %}
+
+{% if selected_voyage %}
+<section class="ned-card">
+    <h3>Notes & departure checklist for voyage #{{ selected_index }}</h3>
+    <p>
+        <strong>{{ selected_voyage.departure }}</strong>
+        &rarr;
+        <strong>{{ selected_voyage.destination }}</strong>
+    </p>
+
+    {% if selected_voyage.notes %}
+        <p class="voyage-notes-full">{{ selected_voyage.notes }}</p>
+    {% else %}
+        <p class="notes-empty">No notes for this voyage yet.</p>
+    {% endif %}
+
+    {% set cl = selected_voyage.checklist if selected_voyage.checklist is defined else {} %}
+
+    <form method="post" action="{{ url_for('update_checklist', index=selected_index - 1) }}" class="checklist-form">
+        <h4>Departure checklist</h4>
+
+        <label>
+            <input type="checkbox" name="fuel" {% if cl.fuel %}checked{% endif %}>
+            Fuel checked
+        </label>
+
+        <label>
+            <input type="checkbox" name="weather" {% if cl.weather %}checked{% endif %}>
+            Weather checked
+        </label>
+
+        <label>
+            <input type="checkbox" name="crew" {% if cl.crew %}checked{% endif %}>
+            Crew briefed
+        </label>
+
+        <label>
+            <input type="checkbox" name="documents" {% if cl.documents %}checked{% endif %}>
+            Documents on board
+        </label>
+
+        <label>
+            <input type="checkbox" name="safety" {% if cl.safety %}checked{% endif %}>
+            Safety equipment checked
+        </label>
+
+        <button type="submit" class="btn btn-secondary btn-small">
+            Save checklist
+        </button>
+    </form>
+</section>
+{% endif %}
+
 {% endblock %}

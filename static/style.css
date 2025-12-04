@@ -196,3 +196,103 @@ a:hover {
 .btn:hover {
     background: #002348;
 }
+
+/* -----------------------
+   Voyage table
+--------------------------*/
+
+.voyage-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
+
+.voyage-table th,
+.voyage-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #e0e6f0;
+    vertical-align: top;
+}
+
+.voyage-table th {
+    text-align: left;
+    font-weight: 600;
+    color: #003366;
+    background: #f0f3f9;
+}
+
+.voyage-table tr:nth-child(even) {
+    background: #f9fafc;
+}
+
+.btn-secondary {
+    background: #ffffff;
+    color: #003366;
+    border-color: #003366;
+}
+
+.btn-secondary:hover {
+    background: #e6edf5;
+}
+
+.voyage-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.btn-small {
+    padding: 3px 8px;
+    font-size: 0.8rem;
+}
+
+.btn-secondary {
+    background: #ffffff;
+    color: #003366;
+    border-color: #003366;
+}
+
+.btn-secondary:hover {
+    background: #e6edf5;
+}
+
+.btn-danger {
+    background: #b00020;
+    border-color: #b00020;
+    color: #fff;
+}
+
+.btn-danger:hover {
+    background: #7d0016;
+}
+
+.voyage-notes-full {
+    white-space: pre-wrap;
+    font-size: 0.95rem;
+}
+
+.notes-empty {
+    color: #999;
+    font-style: italic;
+}
+
+.checklist-form {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.checklist-form h4 {
+    margin: 0 0 6px 0;
+    font-size: 0.95rem;
+    color: #003366;
+}
+
+.checklist-form label {
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
