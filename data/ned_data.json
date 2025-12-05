@@ -32,5 +32,73 @@
             "notes": "",
             "checklist": {}
         }
+    ],
+    "routes": [
+        {
+            "name": "Varna - Istanbul main route",
+            "departure": "Varna",
+            "destination": "Istanbul",
+            "waypoints": "Mm 35 - anchorage area; Sf. Gheorghe branch; Bosphorus TSS",
+            "notes": "Shallow waters near Sf. Gheorghe. Heavy traffic near Bosphorus.",
+            "checklist": {
+                "fuel": true,
+                "weather": false,
+                "crew": true,
+                "documents": true,
+                "safety": false
+            }
+        }
+    ],
+    "log_entries": [],
+    "contacts": [
+        {
+            "region": "Danube",
+            "country": "Romania",
+            "port": "Tulcea",
+            "category": "Harbour Master",
+            "name": "Harbour Master Tulcea",
+            "phone": "",
+            "email": "",
+            "website": "https://portal.rna.ro/"
+        },
+        {
+            "region": "Black Sea",
+            "country": "Romania",
+            "port": "Constanta",
+            "category": "Port Authority",
+            "name": "Maritime Ports Administration Constan\u021ba",
+            "phone": "",
+            "email": "",
+            "website": "https://www.portofconstantza.com/"
+        },
+        {
+            "region": "Black Sea",
+            "country": "Bulgaria",
+            "port": "Varna",
+            "category": "Port Authority",
+            "name": "Port of Varna Authority",
+            "phone": "",
+            "email": "",
+            "website": ""
+        },
+        {
+            "region": "Black Sea",
+            "country": "Turkey",
+            "port": "Istanbul",
+            "category": "Port Authority",
+            "name": "Port of Istanbul Authority",
+            "phone": "",
+            "email": "",
+            "website": ""
+        }
+    ],
+    "personal_contacts": [
+        {
+            "port": "Constanta",
+            "name": "Andrei Plescaru",
+            "role": "Manager Hotel Mariner",
+            "phone": "+40743129471",
+            "notes": "Cel mai tare manager, are camere dotate cu incarcatoare pentru uk inclusiv si roomservice fara taxe adaugate"
+        }
     ]
 }

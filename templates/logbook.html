@@ -5,6 +5,103 @@
 {% block content %}
 <section class="ned-card">
     <h2>Logbook</h2>
-    <p>Content coming soon…</p>
+    <p>
+        Simple logbook for daily events: navigation, weather, traffic, technical notes.
+    </p>
+
+    <form method="post" action="{{ url_for('logbook') }}" class="voyage-form">
+        <div class="form-row">
+            <label for="entry_date">Date</label>
+            <input
+                type="date"
+                id="entry_date"
+                name="entry_date"
+                required
+            >
+        </div>
+
+        <div class="form-row">
+            <label for="entry_time">Time</label>
+            <input
+                type="time"
+                id="entry_time"
+                name="entry_time"
+                required
+            >
+        </div>
+
+        <div class="form-row">
+            <label for="position">Position / river mile</label>
+            <input
+                type="text"
+                id="position"
+                name="position"
+                placeholder="e.g. Mm 35, Sf. Gheorghe branch"
+            >
+        </div>
+
+        <div class="form-row">
+            <label for="category">Category</label>
+            <select id="category" name="category">
+                <option value="Navigation">Navigation</option>
+                <option value="Weather">Weather</option>
+                <option value="Traffic">Traffic</option>
+                <option value="Technical">Technical</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+
+        <div class="form-row">
+            <label for="log_notes">Notes</label>
+            <textarea
+                id="log_notes"
+                name="log_notes"
+                rows="3"
+                placeholder="Short description of the event or observation..."
+            ></textarea>
+        </div>
+
+        <button type="submit" class="btn">Add log entry</button>
+    </form>
 </section>
+
+{% if log_entries %}
+<section class="ned-card">
+    <h3>Logbook entries</h3>
+    <p>All recorded log entries. (Total: {{ log_entries|length }})</p>
+
+    <table class="voyage-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Date / Time</th>
+                <th>Position</th>
+                <th>Category</th>
+                <th>Notes</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in log_entries %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ e.date }} {{ e.time }}</td>
+                <td>{{ e.position or '-' }}</td>
+                <td>{{ e.category }}</td>
+                <td class="voyage-notes-full">
+                    {{ e.notes or '-' }}
+                </td>
+                <td>
+                    <form method="post" action="{{ url_for('delete_log_entry', index=loop.index0) }}">
+                        <button type="submit" class="btn btn-danger btn-small">
+                            Delete
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endif %}
 {% endblock %}

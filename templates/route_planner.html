@@ -5,6 +5,136 @@
 {% block content %}
 <section class="ned-card">
     <h2>Route Planner</h2>
-    <p>Content coming soon…</p>
+    <p>
+        Plan the detailed route for your voyage: main legs, waypoints and a simple
+        departure checklist attached to this route.
+    </p>
+
+    <form method="post" action="{{ url_for('route_planner') }}" class="voyage-form">
+        <div class="form-row">
+            <label for="route_name">Route name</label>
+            <input
+                type="text"
+                id="route_name"
+                name="route_name"
+                placeholder="e.g. Tulcea - Constanța via Sulina"
+                required
+            >
+        </div>
+
+        <div class="form-row">
+            <label for="route_departure">Departure</label>
+            <input
+                type="text"
+                id="route_departure"
+                name="route_departure"
+                placeholder="Departure port / location"
+                required
+            >
+        </div>
+
+        <div class="form-row">
+            <label for="route_destination">Destination</label>
+            <input
+                type="text"
+                id="route_destination"
+                name="route_destination"
+                placeholder="Destination port / location"
+                required
+            >
+        </div>
+
+        <div class="form-row">
+            <label for="waypoints">Waypoints / river miles</label>
+            <textarea
+                id="waypoints"
+                name="waypoints"
+                rows="3"
+                placeholder="List key waypoints, river miles or legs. One per line or separated by semicolons."
+            ></textarea>
+        </div>
+
+        <div class="form-row">
+            <label for="route_notes">Route notes</label>
+            <textarea
+                id="route_notes"
+                name="route_notes"
+                rows="3"
+                placeholder="Special traffic areas, shallow waters, bridges, reporting points..."
+            ></textarea>
+        </div>
+
+        <div class="form-row">
+            <label>Departure checklist for this route</label>
+            <div class="checklist-form">
+                <label>
+                    <input type="checkbox" name="fuel">
+                    Fuel checked
+                </label>
+                <label>
+                    <input type="checkbox" name="weather">
+                    Weather checked
+                </label>
+                <label>
+                    <input type="checkbox" name="crew">
+                    Crew briefed
+                </label>
+                <label>
+                    <input type="checkbox" name="documents">
+                    Documents on board
+                </label>
+                <label>
+                    <input type="checkbox" name="safety">
+                    Safety equipment checked
+                </label>
+            </div>
+        </div>
+
+        <button type="submit" class="btn">Save route plan</button>
+    </form>
 </section>
+
+{% if routes %}
+<section class="ned-card">
+    <h3>Saved route plans</h3>
+    <p>
+        All routes currently stored .
+        (Total: {{ routes|length }})
+    </p>
+
+    <table class="voyage-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Route</th>
+                <th>Departure → Destination</th>
+                <th>Checklist summary</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in routes %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ r.name }}</td>
+                <td>
+                    <strong>{{ r.departure }}</strong>
+                    &rarr;
+                    <strong>{{ r.destination }}</strong>
+                </td>
+                <td>
+                    {% set cl = r.checklist if r.checklist is defined else {} %}
+                    <ul style="margin: 0; padding-left: 18px; font-size: 0.85rem;">
+                        <li>Fuel: {{ 'OK' if cl.fuel else 'pending' }}</li>
+                        <li>Weather: {{ 'OK' if cl.weather else 'pending' }}</li>
+                        <li>Crew: {{ 'OK' if cl.crew else 'pending' }}</li>
+                        <li>Documents: {{ 'OK' if cl.documents else 'pending' }}</li>
+                        <li>Safety: {{ 'OK' if cl.safety else 'pending' }}</li>
+                    </ul>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endif %}
 {% endblock %}

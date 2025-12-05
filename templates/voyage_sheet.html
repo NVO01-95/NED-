@@ -86,7 +86,12 @@
 {% if voyages %}
 <section class="ned-card">
     <h3>Saved voyages</h3>
-    <p>Quick overview of all voyages stored so far.</p>
+    <p>
+        Quick overview of all voyages stored so far.
+        {% if voyage_count is not none %}
+            (Total: {{ voyage_count }})
+        {% endif %}
+    </p>
 
     <table class="voyage-table">
         <thead>
@@ -144,59 +149,23 @@
             {% endfor %}
         </tbody>
     </table>
-</section>
-{% endif %}
 
-{% if selected_voyage %}
-<section class="ned-card">
-    <h3>Notes & departure checklist for voyage #{{ selected_index }}</h3>
-    <p>
-        <strong>{{ selected_voyage.departure }}</strong>
-        &rarr;
-        <strong>{{ selected_voyage.destination }}</strong>
-    </p>
+    {% if selected_voyage %}
+    <div class="notes-section">
+        <h4>Notes for voyage #{{ selected_index }}</h4>
+        <p>
+            <strong>{{ selected_voyage.departure }}</strong>
+            &rarr;
+            <strong>{{ selected_voyage.destination }}</strong>
+        </p>
 
-    {% if selected_voyage.notes %}
-        <p class="voyage-notes-full">{{ selected_voyage.notes }}</p>
-    {% else %}
-        <p class="notes-empty">No notes for this voyage yet.</p>
+        {% if selected_voyage.notes %}
+            <p class="voyage-notes-full">{{ selected_voyage.notes }}</p>
+        {% else %}
+            <p class="notes-empty">No notes for this voyage yet.</p>
+        {% endif %}
+    </div>
     {% endif %}
-
-    {% set cl = selected_voyage.checklist if selected_voyage.checklist is defined else {} %}
-
-    <form method="post" action="{{ url_for('update_checklist', index=selected_index - 1) }}" class="checklist-form">
-        <h4>Departure checklist</h4>
-
-        <label>
-            <input type="checkbox" name="fuel" {% if cl.fuel %}checked{% endif %}>
-            Fuel checked
-        </label>
-
-        <label>
-            <input type="checkbox" name="weather" {% if cl.weather %}checked{% endif %}>
-            Weather checked
-        </label>
-
-        <label>
-            <input type="checkbox" name="crew" {% if cl.crew %}checked{% endif %}>
-            Crew briefed
-        </label>
-
-        <label>
-            <input type="checkbox" name="documents" {% if cl.documents %}checked{% endif %}>
-            Documents on board
-        </label>
-
-        <label>
-            <input type="checkbox" name="safety" {% if cl.safety %}checked{% endif %}>
-            Safety equipment checked
-        </label>
-
-        <button type="submit" class="btn btn-secondary btn-small">
-            Save checklist
-        </button>
-    </form>
 </section>
 {% endif %}
-
 {% endblock %}
