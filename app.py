@@ -210,13 +210,13 @@ def delete_log_entry(index):
         save_data(data)
 
     return redirect(url_for("logbook"))
-
 @app.route("/contacts", methods=["GET", "POST"])
 def contacts():
     data = load_data()
     contacts = data.get("contacts", [])
     personal_contacts_all = data.get("personal_contacts", [])
 
+    # port selectat din query string, ex: /contacts?port=Constanța
     selected_port = request.args.get("port", "").strip()
 
     # dacă vine un POST, e formularul de personal contact
@@ -247,10 +247,17 @@ def contacts():
     # lista de porturi unice pentru dropdown (din contacts + personal_contacts)
     ports = sorted({c["port"] for c in contacts} | {p["port"] for p in personal_contacts_all})
 
-    # filtrare pentru portul selectat
+    # filtrare pentru portul selectat + atașăm indexul real din lista mare
     if selected_port:
         official_filtered = [c for c in contacts if c.get("port") == selected_port]
-        personal_filtered = [p for p in personal_contacts_all if p.get("port") == selected_port]
+
+        personal_filtered = []
+        for idx, p in enumerate(personal_contacts_all):
+            if p.get("port") == selected_port:
+                # copiem dict-ul și îi atașăm indexul pentru delete
+                p_with_index = dict(p)
+                p_with_index["idx"] = idx
+                personal_filtered.append(p_with_index)
     else:
         official_filtered = []
         personal_filtered = []
@@ -262,6 +269,23 @@ def contacts():
         official_contacts=official_filtered,
         personal_contacts=personal_filtered,
     )
+
+@app.route("/contacts/personal/delete/<int:index>", methods=["POST"])
+def delete_personal_contact(index):
+    data = load_data()
+    personal_contacts_all = data.get("personal_contacts", [])
+
+    deleted_port = ""
+    if 0 <= index < len(personal_contacts_all):
+        deleted_port = personal_contacts_all[index].get("port", "")
+        personal_contacts_all.pop(index)
+        data["personal_contacts"] = personal_contacts_all
+        save_data(data)
+
+    if deleted_port:
+        return redirect(url_for("contacts", port=deleted_port))
+    return redirect(url_for("contacts"))
+
 
 @app.route("/weather")
 def weather():

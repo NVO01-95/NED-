@@ -130,6 +130,7 @@
                 <th>Role / notes</th>
                 <th>Phone</th>
                 <th>Extra</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -139,11 +140,19 @@
                 <td>{{ p.role or '-' }}</td>
                 <td>{{ p.phone or '-' }}</td>
                 <td>{{ p.notes or '-' }}</td>
+                <td>
+                    <form method="post" action="{{ url_for('delete_personal_contact', index=p.idx) }}">
+                        <button type="submit" class="btn btn-danger btn-small">
+                            Delete
+                        </button>
+                    </form>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-    {% endif %}
+{% endif %}
+
 </section>
 
 {% elif selected_port and not (official_contacts or personal_contacts) %}

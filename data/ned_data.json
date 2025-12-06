@@ -49,7 +49,15 @@
             }
         }
     ],
-    "log_entries": [],
+    "log_entries": [
+        {
+            "date": "2025-12-01",
+            "time": "20:00",
+            "position": "Mm 37.5 Port Tulcea Aval",
+            "category": "Other",
+            "notes": "Restaurant Marcu livreaza si la bordul navelor prin intermediul Corsarelor Delta Trans"
+        }
+    ],
     "contacts": [
         {
             "region": "Danube",
