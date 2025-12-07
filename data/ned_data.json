@@ -56,6 +56,13 @@
             "position": "Mm 37.5 Port Tulcea Aval",
             "category": "Other",
             "notes": "Restaurant Marcu livreaza si la bordul navelor prin intermediul Corsarelor Delta Trans"
+        },
+        {
+            "date": "2025-12-02",
+            "time": "16:45",
+            "position": "Port Constanta",
+            "category": "Traffic",
+            "notes": "Perioada de asteptare decenta"
         }
     ],
     "contacts": [
@@ -107,6 +114,27 @@
             "role": "Manager Hotel Mariner",
             "phone": "+40743129471",
             "notes": "Cel mai tare manager, are camere dotate cu incarcatoare pentru uk inclusiv si roomservice fara taxe adaugate"
+        }
+    ],
+    "users": [
+        {
+            "voyages": [],
+            "routes": [],
+            "log_entries": [],
+            "contacts": [],
+            "personal_contacts": [],
+            "weather_notes": [],
+            "users": []
+        },
+        {
+            "id": 1,
+            "username": "John",
+            "password_hash": "scrypt:32768:8:1$eOaOUG88btf0shCi$3330d77408a4ec08b50c0fac1d6964f0175d10b44ae1c9e6a761e2ed13a4fe63be8f42bc2869efc986d2e1e5ef089a3700b37afc2bd3200b5f33fab421d246f9"
+        },
+        {
+            "id": 2,
+            "username": "Victus",
+            "password_hash": "scrypt:32768:8:1$Xw3CCV1BRfI0d3uY$1019c5a1e437fae5ab7f2ed882265abeda49f3b2af614b3ecf3a1d7914e26f456afc9faff6408ddf05681a4b8e5440ff70e6f4c30259c542ac99f8651cee13a9"
         }
     ]
 }

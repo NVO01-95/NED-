@@ -68,7 +68,16 @@
 {% if log_entries %}
 <section class="ned-card">
     <h3>Logbook entries</h3>
-    <p>All recorded log entries. (Total: {{ log_entries|length }})</p>
+    <p>
+        All recorded log entries. (Total: {{ log_entries|length }})
+    </p>
+
+    <p style="margin-top: 8px;">
+        <a href="{{ url_for('export_logbook') }}" class="btn btn-secondary btn-small">
+            Export as CSV
+        </a>
+    </p>
+
 
     <table class="voyage-table">
         <thead>

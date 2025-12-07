@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Register · NED{% endblock %}
+
+{% block content %}
+<section class="ned-card">
+    <h2>Create account</h2>
+    <p style="font-size: 0.9rem; color: #555;">
+        Create a simple NED account. For now it’s single-device and JSON-based,
+        but the structure is ready for future multi-user support.
+    </p>
+
+    <form method="post" action="{{ url_for('register') }}" class="voyage-form">
+        <div class="form-row">
+            <label for="username">Username</label>
+            <input
+                type="text"
+                id="username"
+                name="username"
+                required
+                placeholder="Choose a username"
+            >
+        </div>
+
+        <div class="form-row">
+            <label for="password">Password</label>
+            <input
+                type="password"
+                id="password"
+                name="password"
+                required
+                placeholder="Choose a password"
+            >
+        </div>
+
+        <button type="submit" class="btn">Create account</button>
+    </form>
+
+    {% if error %}
+        <p style="color:#b00020; margin-top:10px; font-size:0.9rem;">
+            {{ error }}
+        </p>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,11 +1,106 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, session, make_response
 from data_utils import load_data, save_data
-
+from werkzeug.security import generate_password_hash, check_password_hash
+import json
+import csv 
+import io
 app = Flask(__name__)
+app.secret_key = "change-this-in-production"
+
+@app.context_processor
+def inject_current_user():
+    return {
+        "current_username": session.get("username")
+    }
+
+
 
 @app.route("/")
-def home():
+def index():
     return render_template("index.html")
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    data = load_data()
+    users = data.get("users", [])
+
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+
+        # validări simple
+        if not username or not password:
+            return render_template("register.html", error="Username and password are required.")
+
+        if len(password) < 4:
+            return render_template("register.html", error="Password should have at least 4 characters.")
+
+        # verifică dacă există deja username-ul
+        for u in users:
+            if u.get("username") == username:
+                return render_template("register.html", error="Username already taken.")
+
+        # calculează următorul id
+        if users:
+            max_id = max(u.get("id", 0) for u in users)
+            new_id = max_id + 1
+        else:
+            new_id = 1
+
+        user = {
+            "id": new_id,
+            "username": username,
+            "password_hash": generate_password_hash(password),
+        }
+
+        users.append(user)
+        data["users"] = users
+        save_data(data)
+
+        # auto-login după register
+        session["user_id"] = new_id
+        session["username"] = username
+
+        return redirect(url_for("index"))  # ajustează dacă ai altă rută principală
+
+    return render_template("register.html", error=None)
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    data = load_data()
+    users = data.get("users", [])
+
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+
+        # caută userul
+        user = None
+        for u in users:
+            if u.get("username") == username:
+                user = u
+                break
+
+        if user is None:
+            return render_template("login.html", error="Invalid username or password.")
+
+        if not check_password_hash(user.get("password_hash", ""), password):
+            return render_template("login.html", error="Invalid username or password.")
+
+        # login ok
+        session["user_id"] = user["id"]
+        session["username"] = user["username"]
+
+        return redirect(url_for("index"))  # sau altă pagină default
+
+    return render_template("login.html", error=None)
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("index"))  # sau altă rută principală
+
 
 @app.route("/voyage", methods=["GET", "POST"])
 def voyage_sheet():
@@ -210,6 +305,37 @@ def delete_log_entry(index):
         save_data(data)
 
     return redirect(url_for("logbook"))
+
+@app.route("/logbook/export")
+def export_logbook():
+    data = load_data()
+    log_entries = data.get("log_entries", [])
+
+    # pregătim un CSV în memorie
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # antet
+    writer.writerow(["date", "time", "position", "category", "notes"])
+
+    # rânduri
+    for entry in log_entries:
+        writer.writerow([
+            entry.get("date", ""),
+            entry.get("time", ""),
+            entry.get("position", ""),
+            entry.get("category", ""),
+            entry.get("notes", "").replace("\r\n", " ").replace("\n", " ")
+        ])
+
+    # pregătim răspunsul HTTP cu attachment
+    response = make_response(output.getvalue())
+    response.headers["Content-Disposition"] = "attachment; filename=logbook.csv"
+    response.headers["Content-Type"] = "text/csv; charset=utf-8"
+
+    return response
+
+
 @app.route("/contacts", methods=["GET", "POST"])
 def contacts():
     data = load_data()
@@ -293,7 +419,127 @@ def weather():
 
 @app.route("/settings")
 def settings():
-    return render_template("settings.html")
+    data = load_data()
+
+    summary = {
+        "voyages": len(data.get("voyages", [])),
+        "routes": len(data.get("routes", [])),
+        "log_entries": len(data.get("log_entries", [])),
+        "contacts": len(data.get("contacts", [])),
+        "personal_contacts": len(data.get("personal_contacts", [])),
+        "weather_notes": len(data.get("weather_notes", [])),
+    }
+
+    # la GET simplu nu avem mesaje de import
+    return render_template(
+        "settings.html",
+        summary=summary,
+        import_error=None,
+        import_success=False,
+    )
+
+@app.route("/settings/export")
+def export_settings():
+    data = load_data()
+    json_text = json.dumps(data, indent=2, ensure_ascii=False)
+
+    response = make_response(json_text)
+    response.headers["Content-Disposition"] = "attachment; filename=ned_data.json"
+    response.headers["Content-Type"] = "application/json; charset=utf-8"
+
+    return response
+
+@app.route("/settings/import", methods=["POST"])
+def import_settings():
+    raw_json = request.form.get("json_content", "").strip()
+
+    data = load_data()
+
+    summary = {
+        "voyages": len(data.get("voyages", [])),
+        "routes": len(data.get("routes", [])),
+        "log_entries": len(data.get("log_entries", [])),
+        "contacts": len(data.get("contacts", [])),
+        "personal_contacts": len(data.get("personal_contacts", [])),
+        "weather_notes": len(data.get("weather_notes", [])),
+    }
+
+    if not raw_json:
+        return render_template(
+            "settings.html",
+            summary=summary,
+            import_error="Empty JSON content.",
+            import_success=False,
+        )
+
+    try:
+        new_data = json.loads(raw_json)
+
+        # opțional: mici verificări de structură
+        if not isinstance(new_data, dict):
+            raise ValueError("Top-level JSON must be an object (dictionary).")
+
+        save_data(new_data)
+
+        # recalculează summary după import
+        data = load_data()
+        summary = {
+            "voyages": len(data.get("voyages", [])),
+            "routes": len(data.get("routes", [])),
+            "log_entries": len(data.get("log_entries", [])),
+            "contacts": len(data.get("contacts", [])),
+            "personal_contacts": len(data.get("personal_contacts", [])),
+            "weather_notes": len(data.get("weather_notes", [])),
+        }
+
+        return render_template(
+            "settings.html",
+            summary=summary,
+            import_error=None,
+            import_success=True,
+        )
+
+    except Exception as e:
+        return render_template(
+            "settings.html",
+            summary=summary,
+            import_error=str(e),
+            import_success=False,
+        )
+
+@app.route("/settings/reset", methods=["POST"])
+def reset_settings():
+    data = load_data()
+
+    # păstrăm official contacts, restul listelor le golim
+    contacts = data.get("contacts", [])
+
+    new_data = {
+        "voyages": [],
+        "routes": [],
+        "log_entries": [],
+        "contacts": contacts,
+        "personal_contacts": [],
+        "weather_notes": [],
+    }
+
+    save_data(new_data)
+
+    summary = {
+        "voyages": 0,
+        "routes": 0,
+        "log_entries": 0,
+        "contacts": len(contacts),
+        "personal_contacts": 0,
+        "weather_notes": 0,
+    }
+
+    return render_template(
+        "settings.html",
+        summary=summary,
+        import_error=None,
+        import_success=False,
+    )
 
 
 if __name__ == "__main__":

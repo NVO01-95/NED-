@@ -1,10 +1,85 @@
 {% extends "base.html" %}
 
-{% block title %}Settings & Preferences · NED{% endblock %}
+{% block title %}Settings · NED{% endblock %}
 
 {% block content %}
 <section class="ned-card">
-    <h2>Settings & Preferences</h2>
-    <p>Content coming soon…</p>
+    <h2>NED Settings</h2>
+    <p>
+        Basic overview of your stored data and simple tools to export, import or reset it.
+    </p>
+
+    <div style="margin-top: 10px; font-size: 0.95rem;">
+        <p><strong>Data summary:</strong></p>
+        <ul>
+            <li>Voyages: {{ summary.voyages }}</li>
+            <li>Route plans: {{ summary.routes }}</li>
+            <li>Logbook entries: {{ summary.log_entries }}</li>
+            <li>Official contacts: {{ summary.contacts }}</li>
+            <li>Personal contacts: {{ summary.personal_contacts }}</li>
+            <li>Weather notes: {{ summary.weather_notes }}</li>
+        </ul>
+    </div>
+</section>
+
+<section class="ned-card">
+    <h3>Export data</h3>
+    <p style="font-size: 0.9rem; color: #555;">
+        Download the full NED JSON file. You can keep it as a backup or move it
+        to another device.
+    </p>
+
+    <p>
+        <a href="{{ url_for('export_settings') }}" class="btn btn-secondary btn-small">
+            Download ned_data.json
+        </a>
+    </p>
+</section>
+
+<section class="ned-card">
+    <h3>Import data</h3>
+    <p style="font-size: 0.9rem; color: #555;">
+        Paste a valid JSON structure below to replace your current NED data.
+        Use this carefully. It will overwrite the existing file.
+    </p>
+
+    <form method="post" action="{{ url_for('import_settings') }}" class="voyage-form">
+        <div class="form-row">
+            <label for="json_content">JSON content</label>
+            <textarea
+                id="json_content"
+                name="json_content"
+                rows="8"
+                placeholder="{ &quot;voyages&quot;: [...], &quot;routes&quot;: [...], ... }"
+            ></textarea>
+        </div>
+
+        <button type="submit" class="btn">Import JSON</button>
+    </form>
+
+    {% if import_error %}
+        <p style="color: #b00020; margin-top: 8px; font-size: 0.9rem;">
+            Import error: {{ import_error }}
+        </p>
+    {% elif import_success %}
+        <p style="color: #006400; margin-top: 8px; font-size: 0.9rem;">
+            Data imported successfully.
+        </p>
+    {% endif %}
+</section>
+
+<section class="ned-card">
+    <h3>Reset user data</h3>
+    <p style="font-size: 0.9rem; color: #555;">
+        This will clear voyages, routes, logbook entries, personal contacts and
+        weather notes, but keep official contacts. Use it when you want to start
+        fresh with NED.
+    </p>
+
+    <form method="post" action="{{ url_for('reset_settings') }}">
+        <button type="submit" class="btn btn-danger btn-small">
+            Reset user data
+        </button>
+    </form>
 </section>
 {% endblock %}

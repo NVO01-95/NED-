@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Login · NED{% endblock %}
+
+{% block content %}
+<section class="ned-card">
+    <h2>Login</h2>
+    <p style="font-size: 0.9rem; color: #555;">
+        Log in to access your personal voyages, routes, logbook and contacts.
+    </p>
+
+    <form method="post" action="{{ url_for('login') }}" class="voyage-form">
+        <div class="form-row">
+            <label for="username">Username</label>
+            <input
+                type="text"
+                id="username"
+                name="username"
+                required
+                placeholder="Your username"
+            >
+        </div>
+
+        <div class="form-row">
+            <label for="password">Password</label>
+            <input
+                type="password"
+                id="password"
+                name="password"
+                required
+                placeholder="Your password"
+            >
+        </div>
+
+        <button type="submit" class="btn">Login</button>
+    </form>
+
+    {% if error %}
+        <p style="color:#b00020; margin-top:10px; font-size:0.9rem;">
+            {{ error }}
+        </p>
+    {% endif %}
+</section>
+{% endblock %}
