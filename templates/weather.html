@@ -5,6 +5,56 @@
 {% block content %}
 <section class="ned-card">
     <h2>Weather Center</h2>
-    <p>Content coming soon…</p>
+    <p style="font-size: 0.95rem; color: #555;">
+        Quick access to essential maritime weather sources and a place to store your own observations.
+    </p>
 </section>
+
+<section class="ned-card">
+    <h3>Official Weather Sources</h3>
+    <p style="font-size: 0.9rem; color: #666;">
+        These are primary reference sources for nautical meteorology, sea state, and forecasts.
+    </p>
+
+    <ul class="weather-links">
+        <li><a href="https://www.windy.com" target="_blank">Windy.com – Global Weather & Wind Map</a></li>
+        <li><a href="https://www.meteo.ro" target="_blank">ANM Romania – Forecasts & Warnings</a></li>
+        <li><a href="https://www.meteoblue.com" target="_blank">Meteoblue – Detailed Marine Forecast</a></li>
+        <li><a href="https://www.marineweather.com" target="_blank">MarineWeather – Waves & Tides</a></li>
+        <li><a href="https://www.noaa.gov" target="_blank">NOAA – Marine Data & Observations</a></li>
+    </ul>
+</section>
+
+<section class="ned-card">
+    <h3>Add Weather Note</h3>
+    <p style="font-size: 0.9rem;">Useful for logging dangerous conditions, drift, strong currents, storms, or anything relevant for seamanship.</p>
+
+    <form method="post" action="{{ url_for('weather') }}" class="voyage-form">
+        <div class="form-row">
+            <label for="weather_note">Weather note</label>
+            <textarea id="weather_note" name="weather_note" rows="3" placeholder="Example: Strong NE wind near Sulina. Heavy swell from the east. Visibility reduced to 1 mile."></textarea>
+        </div>
+        <button type="submit" class="btn">Save note</button>
+    </form>
+</section>
+
+{% if weather_notes %}
+<section class="ned-card">
+    <h3>Saved Weather Notes</h3>
+    <p style="font-size: 0.9rem;">These notes may help you understand patterns and navigate safer in the future.</p>
+
+    <ul class="weather-notes-list">
+        {% for note in weather_notes %}
+        <li>
+            <div class="weather-note-item">
+                <span>{{ note }}</span>
+                <form method="post" action="{{ url_for('weather_delete', index=loop.index0) }}" style="display:inline;">
+                    <button class="btn btn-secondary btn-small" type="submit">Delete</button>
+                </form>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
 {% endblock %}

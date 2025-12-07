@@ -13,8 +13,6 @@ def inject_current_user():
         "current_username": session.get("username")
     }
 
-
-
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -413,9 +411,34 @@ def delete_personal_contact(index):
     return redirect(url_for("contacts"))
 
 
-@app.route("/weather")
+@app.route("/weather", methods=["GET", "POST"])
 def weather():
-    return render_template("weather.html")
+    data = load_data()
+    notes = data.get("weather_notes", [])
+
+    if request.method == "POST":
+        note = request.form.get("weather_note", "").strip()
+        if note:
+            notes.append(note)
+            data["weather_notes"] = notes
+            save_data(data)
+        return redirect(url_for("weather"))
+
+    return render_template("weather.html", weather_notes=notes)
+
+@app.route("/weather/delete/<int:index>", methods=["POST"])
+def weather_delete(index):
+    data = load_data()
+    notes = data.get("weather_notes", [])
+
+    if 0 <= index < len(notes):
+        notes.pop(index)
+        data["weather_notes"] = notes
+        save_data(data)
+
+    return redirect(url_for("weather"))
+
+
 
 @app.route("/settings")
 def settings():

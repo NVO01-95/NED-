@@ -3,28 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <title>{% block title %}NED{% endblock %}</title>
-    <link rel="stylesheet" href="{{url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-   <header class="ned-header">
-    <div class="ned-header-left">
-        <h1>NED – Nautical Essential Dashboard</h1>
-        <p class="ned-tagline">For personal nautical planning &amp; logging</p>
-    </div>
+    <header class="ned-header">
+        <div class="ned-header-left">
+            <h1>NED – Nautical Essential Dashboard</h1>
+            <p class="ned-tagline">For personal nautical planning &amp; logging</p>
+        </div>
 
-    <div class="ned-header-right">
-        {% if current_username %}
-            <span class="user-label">
-                Logged in as {{ current_username }}
-            </span>
-            <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
-        {% else %}
-            <a href="{{ url_for('login') }}" class="nav-link">Login</a>
-            <a href="{{ url_for('register') }}" class="nav-link">Register</a>
-        {% endif %}
-    </div>
-</header>
+        <div class="ned-header-right">
+            {% if current_username %}
+                <span class="user-label">
+                    Logged in as {{ current_username }}
+                </span>
+                <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="nav-link">Login</a>
+                <a href="{{ url_for('register') }}" class="nav-link">Register</a>
+            {% endif %}
+        </div>
+    </header>
 
+    <nav class="ned-nav">
+        <a href="{{ url_for('index') }}">Home</a>
+        <a href="{{ url_for('voyage_sheet') }}">Voyage Sheet</a>
+        <a href="{{ url_for('route_planner') }}">Route Planner</a>
+        <a href="{{ url_for('logbook') }}">Logbook</a>
+        <a href="{{ url_for('contacts') }}">Contacts</a>
+        <a href="{{ url_for('weather') }}">Weather</a>
+        <a href="{{ url_for('settings') }}">Settings</a>
+    </nav>
 
     <main class="ned-main">
         {% block content %}
@@ -36,5 +45,3 @@
     </footer>
 </body>
 </html>
-
-         

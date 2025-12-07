@@ -335,3 +335,30 @@ a:hover {
     white-space: pre-wrap;
     font-size: 0.95rem;
 }
+
+.weather-links li {
+    margin: 6px 0;
+}
+
+.weather-links a {
+    font-weight: 500;
+    color: #003366;
+    text-decoration: none;
+}
+
+.weather-links a:hover {
+    text-decoration: underline;
+}
+
+.weather-notes-list li {
+    margin-bottom: 8px;
+}
+
+.weather-note-item {
+    background: #f3f7fa;
+    padding: 10px;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
