@@ -10,8 +10,10 @@ app.secret_key = "change-this-in-production"
 @app.context_processor
 def inject_current_user():
     return {
-        "current_username": session.get("username")
+        "current_username": session.get("username"),
+        "current_user_id": session.get("user_id"),
     }
+
 
 @app.route("/")
 def index():
@@ -100,6 +102,65 @@ def logout():
     return redirect(url_for("index"))  # sau altă rută principală
 
 
+@app.route("/forgot", methods=["GET", "POST"])
+def forgot_password():
+    data = load_data()
+    users = data.get("users", [])
+
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+        password2 = request.form.get("password2", "").strip()
+
+        # validări de bază
+        if not username or not password or not password2:
+            return render_template(
+                "forgot_password.html",
+                error="All fields are required.",
+                success=None,
+            )
+
+        if password != password2:
+            return render_template(
+                "forgot_password.html",
+                error="Passwords do not match.",
+                success=None,
+            )
+
+        # căutăm userul după username
+        target = None
+        for u in users:
+            if u.get("username") == username:
+                target = u
+                break
+
+        if target is None:
+            return render_template(
+                "forgot_password.html",
+                error="Username not found.",
+                success=None,
+            )
+
+        # schimbăm parola (hash)
+        target["password_hash"] = generate_password_hash(password)
+        data["users"] = users
+        save_data(data)
+
+        return render_template(
+            "forgot_password.html",
+            error=None,
+            success="Password successfully reset. You can now log in with the new password.",
+        )
+
+    # GET simplu
+    return render_template(
+        "forgot_password.html",
+        error=None,
+        success=None,
+    )
+
+
+
 @app.route("/voyage", methods=["GET", "POST"])
 def voyage_sheet():
     data = load_data()
@@ -123,13 +184,16 @@ def voyage_sheet():
         distance_nm = request.form.get("distance_nm", "").strip()
         notes = request.form.get("notes", "").strip()
 
-        # if editing, keep old checklist
+        # dacă editezi → păstrăm checklist-ul și user_id-ul vechi
         existing_checklist = {}
+        existing_user_id = None
+
         if idx_str:
             try:
                 idx = int(idx_str)
                 if 0 <= idx < len(voyages):
                     existing_checklist = voyages[idx].get("checklist", {})
+                    existing_user_id = voyages[idx].get("user_id")
             except ValueError:
                 pass
 
@@ -141,6 +205,8 @@ def voyage_sheet():
             "distance_nm": distance_nm,
             "notes": notes,
             "checklist": existing_checklist,
+            # dacă e editare -> păstrăm user_id-ul, dacă e nou -> punem user-ul logat (sau None)
+            "user_id": existing_user_id if idx_str else session.get("user_id"),
         }
 
         if idx_str:
@@ -160,7 +226,9 @@ def voyage_sheet():
 
         return redirect(url_for("voyage_sheet"))
 
-    # handle GET parameters: view (for notes) and edit (for loading form)
+    # ------------------ GET REQUEST BELOW ------------------
+
+    # handle GET parameters: view (for notes)
     view_index = request.args.get("view")
     if view_index is not None:
         try:
@@ -171,6 +239,7 @@ def voyage_sheet():
         except ValueError:
             pass
 
+    # handle GET parameters: edit (for loading form)
     edit_param = request.args.get("edit")
     if edit_param is not None:
         try:
@@ -182,6 +251,18 @@ def voyage_sheet():
         except ValueError:
             pass
 
+    # count voyages
+    voyage_count = len(voyages)
+
+    # count voyages belonging to this user
+    current_user_id = session.get("user_id")
+    user_voyage_count = None
+    if current_user_id:
+        user_voyage_count = sum(
+            1 for v in voyages
+            if v.get("user_id") == current_user_id
+        )
+
     return render_template(
         "voyage_sheet.html",
         voyages=voyages,
@@ -189,8 +270,9 @@ def voyage_sheet():
         selected_index=selected_index,
         editing=editing,
         edit_index=edit_index,
-        form_voyage=form_voyage,
+        form_voyage=form_voyage
     )
+
 
 
 @app.route("/voyage/delete/<int:index>", methods=["POST"])

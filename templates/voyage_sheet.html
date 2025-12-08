@@ -86,12 +86,19 @@
 {% if voyages %}
 <section class="ned-card">
     <h3>Saved voyages</h3>
-    <p>
+        <p>
         Quick overview of all voyages stored so far.
         {% if voyage_count is not none %}
             (Total: {{ voyage_count }})
         {% endif %}
+        {% if current_user_id and user_voyage_count is not none %}
+            <br>
+            <span class="small-hint">
+                Voyages created while logged in as {{ current_username }}: {{ user_voyage_count }}.
+            </span>
+        {% endif %}
     </p>
+
 
     <table class="voyage-table">
         <thead>
@@ -105,13 +112,21 @@
         </thead>
         <tbody>
             {% for v in voyages %}
-            <tr>
+                        <tr class="{% if current_user_id and v.user_id == current_user_id %}own-voyage{% endif %}">
                 <td>{{ loop.index }}</td>
                 <td>
                     <strong>{{ v.departure }}</strong>
                     &rarr;
                     <strong>{{ v.destination }}</strong>
                 </td>
+            <tr class="{% if current_user_id and v.user_id == current_user_id %}own-voyage{% endif %}">
+                <td>{{ loop.index }}</td>
+                <td>
+                    <strong>{{ v.departure }}</strong>
+                    &rarr;
+                    <strong>{{ v.destination }}</strong>
+                </td>
+
                 <td>
                     <div class="voyage-time">
                         <span>ETD: {{ v.etd or "-" }}</span><br>

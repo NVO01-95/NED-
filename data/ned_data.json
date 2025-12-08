@@ -129,7 +129,7 @@
         {
             "id": 1,
             "username": "John",
-            "password_hash": "scrypt:32768:8:1$eOaOUG88btf0shCi$3330d77408a4ec08b50c0fac1d6964f0175d10b44ae1c9e6a761e2ed13a4fe63be8f42bc2869efc986d2e1e5ef089a3700b37afc2bd3200b5f33fab421d246f9"
+            "password_hash": "scrypt:32768:8:1$gaNgcRDCJrDiErZZ$53eec48ee27a2113514e396bbf7b3a2be9fd0a73d2472893f8fb2b93beea2b0aa55873c5fe1bfb21800f9aefbf1a3a304b1ca517c3006a9d97eb17a229d9c465"
         },
         {
             "id": 2,

@@ -35,6 +35,13 @@
         <button type="submit" class="btn">Login</button>
     </form>
 
+    <!-- HERE: linkul de Forgot Password -->
+    <p style="margin-top: 10px; font-size: 0.9rem;">
+        <a href="{{ url_for('forgot_password') }}" style="color:#004a8f;">
+            Forgot your password?
+        </a>
+    </p>
+
     {% if error %}
         <p style="color:#b00020; margin-top:10px; font-size:0.9rem;">
             {{ error }}

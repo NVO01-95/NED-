@@ -362,3 +362,12 @@ a:hover {
     justify-content: space-between;
     align-items: center;
 }
+
+.own-voyage {
+    background-color: #f1f7ff;
+}
+
+.small-hint {
+    font-size: 0.85rem;
+    color: #555;
+}
