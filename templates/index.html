@@ -3,72 +3,74 @@
 {% block title %}NED · Home{% endblock %}
 
 {% block content %}
-<section class="ned-card">
-    <h2>Welcome to NED</h2>
-    <p>
-        Nautical Essential Dashboard is your simple, local tool for planning voyages,
-        keeping a logbook, managing routes and contacts, and saving useful weather notes.
-    </p>
+<section class="home-hero ned-card">
+    <div class="home-hero-text">
+        <h2>Welcome to NED</h2>
+        <p>
+            Nautical Essential Dashboard is a simple, local tool for planning voyages,
+            keeping a logbook, managing routes and contacts, and saving useful weather notes.
+        </p>
 
-    <div style="margin-top: 16px; font-size: 0.95rem;">
         {% if current_username %}
-            <p><strong>Logged in as {{ current_username }}.</strong> Your data will be attached to this account in the future versions.</p>
+            <p class="home-hero-status">
+                Logged in as <strong>{{ current_username }}</strong>. New data will be linked to this account.
+            </p>
         {% else %}
-            <p>
-                You are currently browsing as a guest. You can already explore most features.
-                Creating an account will later allow you to keep your own private data.
+            <p class="home-hero-status">
+                You are currently browsing as a guest. Most features work, but creating an account will let you
+                keep your own private data later.
             </p>
         {% endif %}
     </div>
+</section>
 
-    <div class="home-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 20px;">
-        <div class="ned-card" style="padding: 12px;">
-            <h3>Voyage Sheet</h3>
-            <p style="font-size: 0.9rem;">
-                Plan basic voyage details (departure, destination, ETD, ETA, distance, notes).
-            </p>
-            <a href="{{ url_for('voyage_sheet') }}" class="btn btn-small">Open Voyage Sheet</a>
-        </div>
+<section class="home-grid">
+    <article class="home-card ned-card">
+        <h3>Voyage Sheet</h3>
+        <p>
+            Plan basic voyage details: departure, destination, ETD, ETA, distance and practical notes from mariners.
+        </p>
+        <a href="{{ url_for('voyage_sheet') }}" class="btn btn-small">Open Voyage Sheet</a>
+    </article>
 
-        <div class="ned-card" style="padding: 12px;">
-            <h3>Route Planner</h3>
-            <p style="font-size: 0.9rem;">
-                Save route plans with waypoints and a simple pre-departure checklist.
-            </p>
-            <a href="{{ url_for('route_planner') }}" class="btn btn-small">Open Route Planner</a>
-        </div>
+    <article class="home-card ned-card">
+        <h3>Route Planner</h3>
+        <p>
+            Save route plans with waypoints and a simple checklist before departure.
+        </p>
+        <a href="{{ url_for('route_planner') }}" class="btn btn-small">Open Route Planner</a>
+    </article>
 
-        <div class="ned-card" style="padding: 12px;">
-            <h3>Logbook</h3>
-            <p style="font-size: 0.9rem;">
-                Record navigation, weather and technical events. Export everything as CSV.
-            </p>
-            <a href="{{ url_for('logbook') }}" class="btn btn-small">Open Logbook</a>
-        </div>
+    <article class="home-card ned-card">
+        <h3>Logbook</h3>
+        <p>
+            Record navigation details, weather and technical events. Export everything as CSV for reports.
+        </p>
+        <a href="{{ url_for('logbook') }}" class="btn btn-small">Open Logbook</a>
+    </article>
 
-        <div class="ned-card" style="padding: 12px;">
-            <h3>Contacts Hub</h3>
-            <p style="font-size: 0.9rem;">
-                See official maritime contacts by port and save personal contacts (agents, pilots, friends).
-            </p>
-            <a href="{{ url_for('contacts') }}" class="btn btn-small">Open Contacts</a>
-        </div>
+    <article class="home-card ned-card">
+        <h3>Contacts Hub</h3>
+        <p>
+            Check official maritime contacts by port and keep your own local agents, pilots and friends.
+        </p>
+        <a href="{{ url_for('contacts') }}" class="btn btn-small">Open Contacts</a>
+    </article>
 
-        <div class="ned-card" style="padding: 12px;">
-            <h3>Weather Center</h3>
-            <p style="font-size: 0.9rem;">
-                Quick access to weather sources and a small log of important weather situations.
-            </p>
-            <a href="{{ url_for('weather') }}" class="btn btn-small">Open Weather Center</a>
-        </div>
+    <article class="home-card ned-card">
+        <h3>Weather Center</h3>
+        <p>
+            Quick access to weather sources and a log of important situations along your routes.
+        </p>
+        <a href="{{ url_for('weather') }}" class="btn btn-small">Open Weather Center</a>
+    </article>
 
-        <div class="ned-card" style="padding: 12px;">
-            <h3>Settings & Data</h3>
-            <p style="font-size: 0.9rem;">
-                See data summary, export/import JSON and reset user data while keeping official contacts.
-            </p>
-            <a href="{{ url_for('settings') }}" class="btn btn-small">Open Settings</a>
-        </div>
-    </div>
+    <article class="home-card ned-card">
+        <h3>Settings &amp; Data</h3>
+        <p>
+            See a quick data summary, export/import JSON and reset user data while keeping official contacts.
+        </p>
+        <a href="{{ url_for('settings') }}" class="btn btn-small">Open Settings</a>
+    </article>
 </section>
 {% endblock %}

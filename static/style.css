@@ -1,6 +1,6 @@
-
-   /* Global styles */
-
+/* ======================
+   Global styles
+====================== */
 
 * {
     box-sizing: border-box;
@@ -10,93 +10,140 @@ body {
     margin: 0;
     padding: 0;
     font-family: Arial, Helvetica, sans-serif;
-    background: #f5f7fa;      /* light neutral background */
-    color: #222;              /* dark gray text for readability */
-    padding-bottom: 40px;     /* gives some space below the page */
+    background: #f5f7fa;   /* light neutral background */
+    color: #222;
+    padding-bottom: 40px;
 }
 
+a {
+    color: #003366;
+    text-decoration: none;
+}
 
- 
-/* Header + Branding + Navbar */
+a:hover {
+    color: #002348;
+}
+
+/* ======================
+   Header + Branding
+====================== */
 
 .ned-header {
-    background: #fff;                         /* clean white header */
-    border-bottom: 1px solid #dde3eb;         /* subtle divider line */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.03);    /* light shadow */
-    padding: 20px 30px 10px;
+    background: #ffffff;
+    border-bottom: 1px solid #dde3eb;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    padding: 14px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-.ned-header h1 {
+.ned-header-left h1 {
     margin: 0;
-    font-size: 1.6rem;
-    color: #003366;           /* navy accent */
+    font-size: 1.4rem;
+    color: #003366;
 }
 
-.ned-subtitle {
-    margin: 5px 0 15px;
-    color: #666;              /* soft gray subtitle */
-    font-size: 0.95rem;
+.ned-tagline {
+    margin: 4px 0 0;
+    color: #666;
+    font-size: 0.9rem;
 }
 
-/* Main navigation bar */
+.ned-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-label {
+    font-size: 0.9rem;
+    color: #e5e7eb;
+}
+
+.nav-link {
+    font-size: 0.9rem;
+    color: #003366;                 
+    text-decoration: none;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid #003366;
+    background: #ffffff;
+}
+
+.nav-link:hover {
+    background: #003366;
+    color: #ffffff;
+}
+
+
+/* ======================
+   Top navigation bar
+====================== */
+
 .ned-nav {
     display: flex;
-    flex-wrap: wrap;          /* keeps links on screen on smaller resolutions */
+    flex-wrap: wrap;
     gap: 10px;
-    margin-top: 5px;
+    padding: 8px 24px;
+    background: #0b2740; /* navy bar */
+    border-bottom: 1px solid #c2d4ec;
 }
 
 .ned-nav a {
     text-decoration: none;
     padding: 6px 12px;
-    border-radius: 6px;
+    border-radius: 999px;
     font-size: 0.9rem;
-    color: #003366;
+    color: #e4edf7;
     border: 1px solid transparent;
+    white-space: nowrap;
 }
 
 .ned-nav a:hover {
-    background: #e6edf5;      /* subtle hover */
+    background: #123659;
     border-color: #c2d4ec;
 }
 
-
-/* -----------------------
-   Page layout
---------------------------*/
+/* ======================
+   Main layout
+====================== */
 
 .ned-main {
-    max-width: 1000px;         /* keeps content centered and readable */
-    margin: 25px auto 0;
-    padding: 0 20px;           /* prevents content from touching screen edges */
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 20px;
+    max-width: 1000px;
+    margin: 24px auto 0;
+    padding: 0 20px;
 }
 
-
-/* -----------------------
-   Card components
---------------------------*/
+/* ======================
+   Cards
+====================== */
 
 .ned-card {
-    background: #fff;
+    background: #ffffff;
     border-radius: 10px;
     padding: 18px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.04);   /* light depth */
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    margin-bottom: 18px;
     text-align: left;
 }
 
 .ned-card h2 {
     margin: 0 0 8px 0;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
+    color: #003366;
+}
+
+.ned-card h3 {
+    margin-top: 0;
+    font-size: 1.05rem;
     color: #003366;
 }
 
 .ned-card p,
 .ned-card li {
     font-size: 0.95rem;
-    color: #444;              /* slightly softer than the body text */
+    color: #444;
 }
 
 .ned-card ul {
@@ -104,38 +151,40 @@ body {
     margin: 6px 0 0;
 }
 
+/* ======================
+   Home / Dashboard
+====================== */
 
-/* -----------------------
-   Links & interaction
---------------------------*/
-
-a {
-    color: #003366;
+.home-hero {
+    margin-bottom: 18px;
 }
 
-a:hover {
-    color: #002348;
+.home-hero p {
+    margin: 8px 0;
+    font-size: 0.95rem;
+    color: #4b5563;
 }
 
-/* Placeholder button style (optional for later)
-.btn {
-    display: inline-block;
-    padding: 6px 14px;
-    border-radius: 6px;
-    background: #003366;
-    color: #fff;
-    text-decoration: none;
-    border: 1px solid #003366;
+.home-hero-status {
+    margin-top: 8px;
+    font-size: 0.9rem;
+    color: #1f2933;
 }
-.btn:hover {
-    background: #002348;
+
+.home-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
 }
-*/
 
+.home-card p {
+    font-size: 0.9rem;
+    color: #4b5563;
+}
 
-/* -----------------------
+/* ======================
    Footer
---------------------------*/
+====================== */
 
 .ned-footer {
     text-align: center;
@@ -144,9 +193,55 @@ a:hover {
     color: #777;
 }
 
-/* -----------------------
-   Voyage form
---------------------------*/
+/* ======================
+   Buttons
+====================== */
+
+.btn {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 7px 16px;
+    border-radius: 999px;
+    border: 1px solid #003366;
+    background: #003366;
+    color: #fff;
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.btn:hover {
+    background: #002348;
+}
+
+.btn-small {
+    padding: 4px 10px;
+    font-size: 0.8rem;
+}
+
+.btn-secondary {
+    background: #ffffff;
+    color: #003366;
+    border-color: #003366;
+}
+
+.btn-secondary:hover {
+    background: #e6edf5;
+}
+
+.btn-danger {
+    background: #b00020;
+    border-color: #b00020;
+    color: #fff;
+}
+
+.btn-danger:hover {
+    background: #7d0016;
+}
+
+/* ======================
+   Forms
+====================== */
 
 .voyage-form {
     display: flex;
@@ -168,38 +263,26 @@ a:hover {
 }
 
 .form-row input,
-.form-row textarea {
+.form-row textarea,
+.form-row select {
     padding: 6px 8px;
     border-radius: 6px;
     border: 1px solid #c7d0dd;
     font-size: 0.95rem;
+    background: #f9fafb;
 }
 
 .form-row input:focus,
-.form-row textarea:focus {
+.form-row textarea:focus,
+.form-row select:focus {
     outline: none;
     border-color: #003366;
+    background: #ffffff;
 }
 
-.btn {
-    display: inline-block;
-    margin-top: 6px;
-    padding: 7px 16px;
-    border-radius: 6px;
-    border: 1px solid #003366;
-    background: #003366;
-    color: #fff;
-    font-size: 0.95rem;
-    cursor: pointer;
-}
-
-.btn:hover {
-    background: #002348;
-}
-
-/* -----------------------
+/* ======================
    Voyage table
---------------------------*/
+====================== */
 
 .voyage-table {
     width: 100%;
@@ -226,14 +309,9 @@ a:hover {
     background: #f9fafc;
 }
 
-.btn-secondary {
-    background: #ffffff;
-    color: #003366;
-    border-color: #003366;
-}
-
-.btn-secondary:hover {
-    background: #e6edf5;
+.voyage-time span {
+    font-size: 0.85rem;
+    color: #4b5563;
 }
 
 .voyage-actions {
@@ -242,72 +320,17 @@ a:hover {
     gap: 4px;
 }
 
-.btn-small {
-    padding: 3px 8px;
-    font-size: 0.8rem;
+/* Highlight voyages created by current user */
+.own-voyage {
+    background-color: #f1f7ff;
 }
 
-.btn-secondary {
-    background: #ffffff;
-    color: #003366;
-    border-color: #003366;
+.small-hint {
+    font-size: 0.85rem;
+    color: #555;
 }
 
-.btn-secondary:hover {
-    background: #e6edf5;
-}
-
-.btn-danger {
-    background: #b00020;
-    border-color: #b00020;
-    color: #fff;
-}
-
-.btn-danger:hover {
-    background: #7d0016;
-}
-
-.voyage-notes-full {
-    white-space: pre-wrap;
-    font-size: 0.95rem;
-}
-
-.notes-empty {
-    color: #999;
-    font-style: italic;
-}
-
-.voyage-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.btn-small {
-    padding: 3px 8px;
-    font-size: 0.8rem;
-}
-
-.btn-secondary {
-    background: #ffffff;
-    color: #003366;
-    border-color: #003366;
-}
-
-.btn-secondary:hover {
-    background: #e6edf5;
-}
-
-.btn-danger {
-    background: #b00020;
-    border-color: #b00020;
-    color: #fff;
-}
-
-.btn-danger:hover {
-    background: #7d0016;
-}
-
+/* Notes section in Voyage Sheet */
 .notes-section {
     margin-top: 16px;
     padding-top: 10px;
@@ -324,6 +347,7 @@ a:hover {
     font-style: italic;
 }
 
+/* Checklist inside voyage notes */
 .checklist-form {
     display: flex;
     flex-direction: column;
@@ -331,10 +355,9 @@ a:hover {
     font-size: 0.9rem;
 }
 
-.voyage-notes-full {
-    white-space: pre-wrap;
-    font-size: 0.95rem;
-}
+/* ======================
+   Weather section
+====================== */
 
 .weather-links li {
     margin: 6px 0;
@@ -350,6 +373,11 @@ a:hover {
     text-decoration: underline;
 }
 
+.weather-notes-list {
+    list-style: none;
+    padding-left: 0;
+}
+
 .weather-notes-list li {
     margin-bottom: 8px;
 }
@@ -361,13 +389,4 @@ a:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
-}
-
-.own-voyage {
-    background-color: #f1f7ff;
-}
-
-.small-hint {
-    font-size: 0.85rem;
-    color: #555;
 }
