@@ -1,76 +1,101 @@
 {% extends "base.html" %}
 
-{% block title %}NED · Home{% endblock %}
+{% block title %}NED · Dashboard{% endblock %}
 
 {% block content %}
-<section class="home-hero ned-card">
-    <div class="home-hero-text">
-        <h2>Welcome to NED</h2>
-        <p>
-            Nautical Essential Dashboard is a simple, local tool for planning voyages,
-            keeping a logbook, managing routes and contacts, and saving useful weather notes.
-        </p>
+<section class="ned-card home-hero">
+    <h2>Welcome to NED</h2>
+    <p>
+        Nautical Essential Dashboard is a local tool for planning voyages, keeping a logbook,
+        managing routes and contacts, and writing down weather-related notes.
+    </p>
 
-        {% if current_username %}
-            <p class="home-hero-status">
-                Logged in as <strong>{{ current_username }}</strong>. New data will be linked to this account.
-            </p>
-        {% else %}
-            <p class="home-hero-status">
-                You are currently browsing as a guest. Most features work, but creating an account will let you
-                keep your own private data later.
-            </p>
-        {% endif %}
+    {% if current_username %}
+        <p class="home-hero-status">
+            Logged in as <strong>{{ current_username }}</strong>. New voyages, routes and logbook entries
+            are linked to this account.
+        </p>
+    {% else %}
+        <p class="home-hero-status">
+            You are browsing as a guest. You can explore all sections from the top navigation bar.
+            Creating an account will let you keep your own personal data later.
+        </p>
+    {% endif %}
+</section>
+
+{% if summary %}
+<section class="home-stats">
+    <div class="home-stat-card">
+        <div class="home-stat-label">Voyages</div>
+        <div class="home-stat-value">{{ summary.voyages }}</div>
+    </div>
+    <div class="home-stat-card">
+        <div class="home-stat-label">Routes</div>
+        <div class="home-stat-value">{{ summary.routes }}</div>
+    </div>
+    <div class="home-stat-card">
+        <div class="home-stat-label">Logbook entries</div>
+        <div class="home-stat-value">{{ summary.log_entries }}</div>
+    </div>
+    <div class="home-stat-card">
+        <div class="home-stat-label">Contacts</div>
+        <div class="home-stat-value">{{ summary.contacts }}</div>
+    </div>
+    <div class="home-stat-card">
+        <div class="home-stat-label">Weather notes</div>
+        <div class="home-stat-value">{{ summary.weather_notes }}</div>
     </div>
 </section>
+{% endif %}
 
 <section class="home-grid">
     <article class="home-card ned-card">
         <h3>Voyage Sheet</h3>
         <p>
-            Plan basic voyage details: departure, destination, ETD, ETA, distance and practical notes from mariners.
+            Plan the key information for a voyage: departure, destination, ETD/ETA,
+            estimated distance and practical notes from mariners.  
+            You can access it anytime from the top navigation bar.
         </p>
-        <a href="{{ url_for('voyage_sheet') }}" class="btn btn-small">Open Voyage Sheet</a>
     </article>
 
     <article class="home-card ned-card">
         <h3>Route Planner</h3>
         <p>
-            Save route plans with waypoints and a simple checklist before departure.
+            Store predefined routes with waypoints and a simple checklist before departure.
+            Useful when you repeat similar passages or want to keep “template routes”.
         </p>
-        <a href="{{ url_for('route_planner') }}" class="btn btn-small">Open Route Planner</a>
     </article>
 
     <article class="home-card ned-card">
         <h3>Logbook</h3>
         <p>
-            Record navigation details, weather and technical events. Export everything as CSV for reports.
+            Record navigation events, weather and technical notes by date and time.
+            Later you can export everything to CSV for reports or archives.
         </p>
-        <a href="{{ url_for('logbook') }}" class="btn btn-small">Open Logbook</a>
     </article>
 
     <article class="home-card ned-card">
         <h3>Contacts Hub</h3>
         <p>
-            Check official maritime contacts by port and keep your own local agents, pilots and friends.
+            Keep official contacts for each port (MRCC, authorities, agents) and your personal network
+            of pilots, local friends or other mariners.
         </p>
-        <a href="{{ url_for('contacts') }}" class="btn btn-small">Open Contacts</a>
     </article>
 
     <article class="home-card ned-card">
         <h3>Weather Center</h3>
         <p>
-            Quick access to weather sources and a log of important situations along your routes.
+            Quick links to external weather services plus a simple log of important situations
+            you want to remember for future voyages.
         </p>
-        <a href="{{ url_for('weather') }}" class="btn btn-small">Open Weather Center</a>
     </article>
 
     <article class="home-card ned-card">
         <h3>Settings &amp; Data</h3>
         <p>
-            See a quick data summary, export/import JSON and reset user data while keeping official contacts.
+            See a quick summary of stored data, export/import your JSON file and reset user data
+            while keeping official contacts.
         </p>
-        <a href="{{ url_for('settings') }}" class="btn btn-small">Open Settings</a>
     </article>
 </section>
 {% endblock %}

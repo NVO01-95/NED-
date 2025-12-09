@@ -390,3 +390,29 @@ a:hover {
     justify-content: space-between;
     align-items: center;
 }
+
+.home-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.home-stat-card {
+    background: #0b2740;
+    color: #ffffff;
+    border-radius: 10px;
+    padding: 10px 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+
+.home-stat-label {
+    font-size: 0.8rem;
+    opacity: 0.85;
+}
+
+.home-stat-value {
+    margin-top: 4px;
+    font-size: 1.2rem;
+    font-weight: 600;
+}

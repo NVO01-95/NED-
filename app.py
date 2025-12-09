@@ -16,8 +16,19 @@ def inject_current_user():
 
 
 @app.route("/")
-def index():
-    return render_template("index.html")
+def home():
+    data = load_data()
+
+    summary = {
+        "voyages": len(data.get("voyages", [])),
+        "routes": len(data.get("routes", [])),
+        "log_entries": len(data.get("log_entries", [])),
+        "contacts": len(data.get("contacts", [])) + len(data.get("personal_contacts", [])),
+        "weather_notes": len(data.get("weather_notes", [])),
+    }
+
+    return render_template("index.html", summary=summary)
+
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -62,7 +73,7 @@ def register():
         session["user_id"] = new_id
         session["username"] = username
 
-        return redirect(url_for("index"))  # ajustează dacă ai altă rută principală
+        return redirect(url_for("home"))  
 
     return render_template("register.html", error=None)
 
@@ -92,14 +103,14 @@ def login():
         session["user_id"] = user["id"]
         session["username"] = user["username"]
 
-        return redirect(url_for("index"))  # sau altă pagină default
+        return redirect(url_for("home")) 
 
     return render_template("login.html", error=None)
 
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("index"))  # sau altă rută principală
+    return redirect(url_for("home"))  
 
 
 @app.route("/forgot", methods=["GET", "POST"])
