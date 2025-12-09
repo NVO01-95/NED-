@@ -6,8 +6,8 @@
 <section class="ned-card home-hero">
     <h2>Welcome to NED</h2>
     <p>
-        Nautical Essential Dashboard is a local tool for planning voyages, keeping a logbook,
-        managing routes and contacts, and writing down weather-related notes.
+        Nautical Essential Dashboard is a local tool for planning voyages,
+        keeping a logbook, managing routes and contacts, and writing down weather-related notes.
     </p>
 
     {% if current_username %}
@@ -53,9 +53,9 @@
         <h3>Voyage Sheet</h3>
         <p>
             Plan the key information for a voyage: departure, destination, ETD/ETA,
-            estimated distance and practical notes from mariners.  
-            You can access it anytime from the top navigation bar.
+            estimated distance and practical notes from mariners.
         </p>
+        <a href="{{ url_for('voyage_sheet') }}" class="btn btn-small">Open Voyage Sheet</a>
     </article>
 
     <article class="home-card ned-card">
@@ -64,6 +64,7 @@
             Store predefined routes with waypoints and a simple checklist before departure.
             Useful when you repeat similar passages or want to keep “template routes”.
         </p>
+        <a href="{{ url_for('route_planner') }}" class="btn btn-small">Open Route Planner</a>
     </article>
 
     <article class="home-card ned-card">
@@ -72,14 +73,16 @@
             Record navigation events, weather and technical notes by date and time.
             Later you can export everything to CSV for reports or archives.
         </p>
+        <a href="{{ url_for('logbook') }}" class="btn btn-small">Open Logbook</a>
     </article>
 
     <article class="home-card ned-card">
         <h3>Contacts Hub</h3>
         <p>
-            Keep official contacts for each port (MRCC, authorities, agents) and your personal network
-            of pilots, local friends or other mariners.
+            Keep official contacts for each port and your personal network
+            of agents, pilots, local friends or other mariners.
         </p>
+        <a href="{{ url_for('contacts') }}" class="btn btn-small">Open Contacts</a>
     </article>
 
     <article class="home-card ned-card">
@@ -88,14 +91,55 @@
             Quick links to external weather services plus a simple log of important situations
             you want to remember for future voyages.
         </p>
+        <a href="{{ url_for('weather') }}" class="btn btn-small">Open Weather Center</a>
     </article>
 
     <article class="home-card ned-card">
         <h3>Settings &amp; Data</h3>
         <p>
-            See a quick summary of stored data, export/import your JSON file and reset user data
+            See a summary of stored data, export/import your JSON file and reset user data
             while keeping official contacts.
         </p>
+        <a href="{{ url_for('settings') }}" class="btn btn-small">Open Settings</a>
     </article>
 </section>
+
+{% if voyage_stats and voyage_stats.total_distance_nm > 0 %}
+<section class="ned-card">
+    <h3>Voyage analytics</h3>
+
+    <p>
+        Total logged distance:
+        <strong>{{ voyage_stats.total_distance_nm }} NM</strong>
+    </p>
+
+    {% if voyage_stats.longest_voyage %}
+        <p>
+            Longest voyage:
+            <strong>{{ voyage_stats.longest_voyage.departure }}</strong>
+            &rarr;
+            <strong>{{ voyage_stats.longest_voyage.destination }}</strong>
+            ({{ voyage_stats.longest_voyage.distance_nm }} NM)
+        </p>
+    {% endif %}
+
+    {% if voyage_stats.top_departures %}
+        <p>
+            Most common departure ports:
+            {% for port, count in voyage_stats.top_departures %}
+                <span>{{ port }} ({{ count }}){% if not loop.last %}, {% endif %}</span>
+            {% endfor %}
+        </p>
+    {% endif %}
+
+    {% if voyage_stats.top_destinations %}
+        <p>
+            Most common destinations:
+            {% for port, count in voyage_stats.top_destinations %}
+                <span>{{ port }} ({{ count }}){% if not loop.last %}, {% endif %}</span>
+            {% endfor %}
+        </p>
+    {% endif %}
+</section>
+{% endif %}
 {% endblock %}

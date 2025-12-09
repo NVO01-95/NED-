@@ -1,11 +1,69 @@
 from flask import Flask, render_template, request, redirect, url_for, session, make_response
 from data_utils import load_data, save_data
 from werkzeug.security import generate_password_hash, check_password_hash
+from collections import Counter
+
 import json
 import csv 
 import io
+
 app = Flask(__name__)
 app.secret_key = "change-this-in-production"
+
+def compute_voyage_stats(voyages):
+    """
+    Primește lista de voyages (dict-uri) și calculează:
+      - distanța totală (în NM)
+      - cel mai lung voyage
+      - cele mai frecvente porturi de plecare/destinație
+    """
+    total_distance = 0.0
+    distances = []  # (distance, voyage_dict)
+    departures = []
+    destinations = []
+
+    for v in voyages:
+        # distanță
+        dist_raw = v.get("distance_nm")
+        if dist_raw is not None and dist_raw != "":
+            try:
+                dist_val = float(dist_raw)
+                total_distance += dist_val
+                distances.append((dist_val, v))
+            except ValueError:
+                # dacă nu se poate converti, îl ignorăm
+                pass
+
+        # porturi
+        dep = (v.get("departure") or "").strip()
+        dest = (v.get("destination") or "").strip()
+        if dep:
+            departures.append(dep)
+        if dest:
+            destinations.append(dest)
+
+    # longest voyage
+    longest_voyage = None
+    if distances:
+        dist_val, v = max(distances, key=lambda x: x[0])
+        longest_voyage = {
+            "distance_nm": dist_val,
+            "departure": v.get("departure"),
+            "destination": v.get("destination"),
+        }
+
+    # top ports
+    top_departures = Counter(departures).most_common(3)
+    top_destinations = Counter(destinations).most_common(3)
+
+    return {
+        "total_distance_nm": round(total_distance, 1),
+        "longest_voyage": longest_voyage,
+        "top_departures": top_departures,
+        "top_destinations": top_destinations,
+    }
+
+
 
 @app.context_processor
 def inject_current_user():
@@ -18,16 +76,23 @@ def inject_current_user():
 @app.route("/")
 def home():
     data = load_data()
+    voyages = data.get("voyages", [])
 
     summary = {
-        "voyages": len(data.get("voyages", [])),
+        "voyages": len(voyages),
         "routes": len(data.get("routes", [])),
         "log_entries": len(data.get("log_entries", [])),
         "contacts": len(data.get("contacts", [])) + len(data.get("personal_contacts", [])),
         "weather_notes": len(data.get("weather_notes", [])),
     }
 
-    return render_template("index.html", summary=summary)
+    voyage_stats = compute_voyage_stats(voyages)
+
+    return render_template(
+        "index.html",
+        summary=summary,
+        voyage_stats=voyage_stats,
+    )
 
 
 
