@@ -1,164 +1,172 @@
 {% extends "base.html" %}
 
-{% block title %}Contacts Hub · NED{% endblock %}
+{% block title %}Contacts · NED{% endblock %}
 
 {% block content %}
 <section class="ned-card">
     <h2>Contacts Hub</h2>
     <p>
-        Find official maritime contacts by port, and save personal contacts
-        you meet along your voyages.
+        Official maritime contacts by port, plus your own local agents, pilots and friends met along the way.
     </p>
+    <p class="small-hint">
+        Total ports in database: <strong>{{ total_ports }}</strong> ·
+        Official contacts: <strong>{{ total_official }}</strong> ·
+        Personal contacts: <strong>{{ total_personal }}</strong>
+    </p>
+</section>
 
-    <!-- Filter by port -->
+<section class="ned-card">
+    <h3>Select port</h3>
     <form method="get" action="{{ url_for('contacts') }}" class="voyage-form">
         <div class="form-row">
-            <label for="port">Select port</label>
+            <label for="port">Port</label>
             <select id="port" name="port">
                 <option value="">-- choose a port --</option>
-                {% for p in ports %}
-                    <option value="{{ p }}" {% if p == selected_port %}selected{% endif %}>
-                        {{ p }}
+                {% for port in ports %}
+                    <option value="{{ port }}" {% if port == selected_port %}selected{% endif %}>
+                        {{ port }}
                     </option>
                 {% endfor %}
             </select>
         </div>
-
-        <button type="submit" class="btn">Show contacts</button>
+        <button type="submit" class="btn btn-small">Show contacts</button>
     </form>
+
+    {% if selected_port %}
+        <p class="small-hint" style="margin-top: 8px;">
+            Showing contacts for <strong>{{ selected_port }}</strong>.
+        </p>
+
+        {% if port_stats %}
+            <div class="contacts-port-summary">
+                <span class="contacts-pill">
+                    Official: {{ port_stats.official_count }}
+                </span>
+                <span class="contacts-pill">
+                    Personal: {{ port_stats.personal_count }}
+                </span>
+                <span class="contacts-pill">
+                    Total: {{ port_stats.total_count }}
+                </span>
+
+                {% if port_stats.top_roles %}
+                    <span class="contacts-pill">
+                        Top roles:
+                        {% for role, count in port_stats.top_roles %}
+                            {{ role }} ({{ count }}){% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </span>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% else %}
+        <p class="small-hint" style="margin-top: 8px;">
+            Choose a port to see its contacts.
+        </p>
+    {% endif %}
 </section>
 
 {% if selected_port %}
-<section class="ned-card">
-    <h3>Add personal contact in {{ selected_port }}</h3>
-    <p style="font-size: 0.9rem; color: #555;">
-        Met a pilot, agent or local friend in this port? Save them here as a special contact.
-    </p>
+<section class="contacts-columns">
+    <article class="ned-card contacts-column">
+        <h3>Official contacts</h3>
 
-    <form method="post" action="{{ url_for('contacts') }}" class="voyage-form">
-        <input type="hidden" name="form_type" value="personal">
-        <input type="hidden" name="port" value="{{ selected_port }}">
+        {% if official_contacts %}
+            <table class="contacts-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Role / Type</th>
+                        <th>Phone / Email</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in official_contacts %}
+                    <tr>
+                        <td>{{ c.name }}</td>
+                        <td>{{ c.role or c.type }}</td>
+                        <td>
+                            {% if c.phone %}
+                                <div>{{ c.phone }}</div>
+                            {% endif %}
+                            {% if c.email %}
+                                <div>{{ c.email }}</div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="small-hint">No official contacts stored for this port yet.</p>
+        {% endif %}
+    </article>
 
-        <div class="form-row">
-            <label for="person_name">Name</label>
-            <input
-                type="text"
-                id="person_name"
-                name="person_name"
-                placeholder="e.g. Mike the agent"
-                required
-            >
-        </div>
+    <article class="ned-card contacts-column">
+        <h3>Personal contacts for {{ selected_port }}</h3>
 
-        <div class="form-row">
-            <label for="person_role">Role / notes</label>
-            <input
-                type="text"
-                id="person_role"
-                name="person_role"
-                placeholder="Pilot, agent, local contact, tug operator..."
-            >
-        </div>
+        {% if personal_contacts %}
+            <table class="contacts-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Phone</th>
+                        <th>Notes</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in personal_contacts %}
+                    <tr>
+                        <td>{{ p.name }}</td>
+                        <td>{{ p.role }}</td>
+                        <td>{{ p.phone }}</td>
+                        <td>{{ p.notes }}</td>
+                        <td>
+                            <form method="post" action="{{ url_for('delete_personal_contact', index=p.idx) }}">
+                                <button type="submit" class="btn btn-danger btn-small">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="small-hint">No personal contacts for this port yet.</p>
+        {% endif %}
 
-        <div class="form-row">
-            <label for="person_phone">Phone</label>
-            <input
-                type="text"
-                id="person_phone"
-                name="person_phone"
-                placeholder="+40..., +90..., etc."
-            >
-        </div>
+        <hr style="margin: 14px 0; border: none; border-top: 1px solid #e0e6f0;">
 
-        <div class="form-row">
-            <label for="person_notes">Extra notes</label>
-            <textarea
-                id="person_notes"
-                name="person_notes"
-                rows="2"
-                placeholder="Short description: reliable, speaks English, helped with... "
-            ></textarea>
-        </div>
+        <h4>Add personal contact</h4>
+        <form method="post" action="{{ url_for('contacts', port=selected_port) }}" class="voyage-form">
+            <input type="hidden" name="form_type" value="personal">
 
-        <button type="submit" class="btn">Save personal contact</button>
-    </form>
-</section>
-{% endif %}
+            <div class="form-row">
+                <label for="person_name">Name</label>
+                <input id="person_name" name="person_name" type="text" required placeholder="Contact name">
+            </div>
 
-{% if selected_port and (official_contacts or personal_contacts) %}
-<section class="ned-card">
-    <h3>Contacts for {{ selected_port }}</h3>
+            <div class="form-row">
+                <label for="person_role">Role</label>
+                <input id="person_role" name="person_role" type="text" placeholder="Agent, pilot, friend...">
+            </div>
 
-    {% if official_contacts %}
-    <h4>Official contacts</h4>
-    <table class="voyage-table">
-        <thead>
-            <tr>
-                <th>Region</th>
-                <th>Country</th>
-                <th>Category</th>
-                <th>Name</th>
-                <th>Website</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for c in official_contacts %}
-            <tr>
-                <td>{{ c.region }}</td>
-                <td>{{ c.country }}</td>
-                <td>{{ c.category }}</td>
-                <td>{{ c.name }}</td>
-                <td>
-                    {% if c.website %}
-                        <a href="{{ c.website }}" target="_blank">Open</a>
-                    {% else %}
-                        -
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% endif %}
+            <div class="form-row">
+                <label for="person_phone">Phone</label>
+                <input id="person_phone" name="person_phone" type="text" placeholder="+40...">
+            </div>
 
-    {% if personal_contacts %}
-    <h4 style="margin-top: 16px;">Personal contacts (special guests)</h4>
-    <table class="voyage-table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Role / notes</th>
-                <th>Phone</th>
-                <th>Extra</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for p in personal_contacts %}
-            <tr>
-                <td>{{ p.name }}</td>
-                <td>{{ p.role or '-' }}</td>
-                <td>{{ p.phone or '-' }}</td>
-                <td>{{ p.notes or '-' }}</td>
-                <td>
-                    <form method="post" action="{{ url_for('delete_personal_contact', index=p.idx) }}">
-                        <button type="submit" class="btn btn-danger btn-small">
-                            Delete
-                        </button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-{% endif %}
+            <div class="form-row">
+                <label for="person_notes">Notes</label>
+                <textarea id="person_notes" name="person_notes" rows="2" placeholder="How you met, when, why they are useful..."></textarea>
+            </div>
 
-</section>
+            <input type="hidden" name="port" value="{{ selected_port }}">
 
-{% elif selected_port and not (official_contacts or personal_contacts) %}
-<section class="ned-card">
-    <h3>No contacts found for {{ selected_port }}</h3>
-    <p>You can start by adding a personal contact above.</p>
+            <button type="submit" class="btn btn-small">Save personal contact</button>
+        </form>
+    </article>
 </section>
 {% endif %}
 {% endblock %}

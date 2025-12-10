@@ -416,3 +416,45 @@ a:hover {
     font-size: 1.2rem;
     font-weight: 600;
 }
+
+.contacts-port-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+    font-size: 0.85rem;
+}
+
+.contacts-pill {
+    background: #0b2740;
+    color: #ffffff;
+    padding: 4px 10px;
+    border-radius: 999px;
+}
+
+.contacts-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+    margin-top: 10px;
+}
+
+.contacts-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    margin-top: 8px;
+}
+
+.contacts-table th,
+.contacts-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid #e0e6f0;
+    vertical-align: top;
+}
+
+.contacts-table th {
+    text-align: left;
+    background: #f0f3f9;
+    color: #003366;
+}

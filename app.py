@@ -63,6 +63,31 @@ def compute_voyage_stats(voyages):
         "top_destinations": top_destinations,
     }
 
+def compute_contact_stats_for_port(official_contacts, personal_contacts, port_name):
+    """
+    Calculează statistici simple pentru un port:
+      - număr de contacte oficiale
+      - număr de contacte personale
+      - top roluri/tipuri de contacte (MRCC, Agent, Pilot etc.)
+    """
+    official = [c for c in official_contacts if (c.get("port") or "").strip() == port_name]
+    personal = [p for p in personal_contacts if (p.get("port") or "").strip() == port_name]
+
+    roles = []
+    for c in official + personal:
+        role = (c.get("role") or c.get("type") or "").strip()
+        if role:
+            roles.append(role)
+
+    role_counts = Counter(roles).most_common(3)
+
+    return {
+        "official_count": len(official),
+        "personal_count": len(personal),
+        "total_count": len(official) + len(personal),
+        "top_roles": role_counts,
+    }
+
 
 
 @app.context_processor
@@ -517,7 +542,7 @@ def contacts():
                     "name": person_name,
                     "role": person_role,
                     "phone": person_phone,
-                    "notes": person_notes
+                    "notes": person_notes,
                 }
                 personal_contacts_all.append(new_personal)
                 data["personal_contacts"] = personal_contacts_all
@@ -527,22 +552,29 @@ def contacts():
             return redirect(url_for("contacts", port=port))
 
     # lista de porturi unice pentru dropdown (din contacts + personal_contacts)
-    ports = sorted({c["port"] for c in contacts} | {p["port"] for p in personal_contacts_all})
+    ports = sorted({c.get("port", "") for c in contacts} | {p.get("port", "") for p in personal_contacts_all})
+    ports = [p for p in ports if p]  # scoatem stringuri goale
 
-    # filtrare pentru portul selectat + atașăm indexul real din lista mare
     if selected_port:
-        official_filtered = [c for c in contacts if c.get("port") == selected_port]
+        # filtrare pentru portul selectat + atașăm indexul real din lista mare
+        official_filtered = [c for c in contacts if (c.get("port") or "").strip() == selected_port]
 
         personal_filtered = []
         for idx, p in enumerate(personal_contacts_all):
-            if p.get("port") == selected_port:
-                # copiem dict-ul și îi atașăm indexul pentru delete
+            if (p.get("port") or "").strip() == selected_port:
                 p_with_index = dict(p)
                 p_with_index["idx"] = idx
                 personal_filtered.append(p_with_index)
+
+        port_stats = compute_contact_stats_for_port(contacts, personal_contacts_all, selected_port)
     else:
         official_filtered = []
         personal_filtered = []
+        port_stats = None
+
+    total_official = len(contacts)
+    total_personal = len(personal_contacts_all)
+    total_ports = len(ports)
 
     return render_template(
         "contacts.html",
@@ -550,6 +582,10 @@ def contacts():
         selected_port=selected_port,
         official_contacts=official_filtered,
         personal_contacts=personal_filtered,
+        port_stats=port_stats,
+        total_official=total_official,
+        total_personal=total_personal,
+        total_ports=total_ports,
     )
 
 @app.route("/contacts/personal/delete/<int:index>", methods=["POST"])
