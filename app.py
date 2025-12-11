@@ -98,25 +98,143 @@ def inject_current_user():
     }
 
 
+# @app.route("/")
+# def home():
+#     data = load_data()
+#     voyages = data.get("voyages", [])
+
+#     summary = {
+#         "voyages": len(voyages),
+#         "routes": len(data.get("routes", [])),
+#         "log_entries": len(data.get("log_entries", [])),
+#         "contacts": len(data.get("contacts", [])) + len(data.get("personal_contacts", [])),
+#         "weather_notes": len(data.get("weather_notes", [])),
+#     }
+
+#     voyage_stats = compute_voyage_stats(voyages)
+
+#     return render_template(
+#         "index.html",
+#         summary=summary,
+#         voyage_stats=voyage_stats,
+#     )
+
+
 @app.route("/")
 def home():
     data = load_data()
+    users = data.get("users", [])
+
+    uid = session.get("user_id")
+    current_user = next((u for u in users if u.get("id") == uid), None)
+
+    # dacă este admin -> trimitem direct la panoul de control
+    if current_user and current_user.get("is_admin", False):
+        return redirect(url_for("admin_panel"))
+
+    # dacă NU este admin -> afișăm dashboard-ul standard
+    return render_template("index.html")
+
+
+@app.route("/admin")
+def admin_panel():
+    data = load_data()
+    users = data.get("users", [])
     voyages = data.get("voyages", [])
+    routes = data.get("routes", [])
+    log_entries = data.get("log_entries", [])
+    contacts = data.get("contacts", [])
+    personal_contacts = data.get("personal_contacts", [])
+    weather_notes = data.get("weather_notes", [])
+
+    uid = session.get("user_id")
+    current_user = next((u for u in users if u.get("id") == uid), None)
+
+    # doar adminul are voie aici
+    if not current_user or not current_user.get("is_admin", False):
+        return redirect(url_for("login"))
 
     summary = {
+        "users": len(users),
         "voyages": len(voyages),
-        "routes": len(data.get("routes", [])),
-        "log_entries": len(data.get("log_entries", [])),
-        "contacts": len(data.get("contacts", [])) + len(data.get("personal_contacts", [])),
-        "weather_notes": len(data.get("weather_notes", [])),
+        "routes": len(routes),
+        "log_entries": len(log_entries),
+        "contacts": len(contacts),
+        "personal_contacts": len(personal_contacts),
+        "weather_notes": len(weather_notes),
     }
 
-    voyage_stats = compute_voyage_stats(voyages)
+    return render_template(
+        "admin.html",
+        users=users,
+        voyages=voyages,
+        summary=summary,
+        admin_message=None,
+        admin_error=None,
+    )
+
+
+
+@app.route("/admin/reset_password", methods=["POST"])
+def admin_reset_password():
+    data = load_data()
+    users = data.get("users", [])
+
+    uid = session.get("user_id")
+    current_user = next((u for u in users if u.get("id") == uid), None)
+
+    if not current_user or not current_user.get("is_admin", False):
+        return redirect(url_for("login"))
+
+    user_id_str = request.form.get("user_id", "").strip()
+    new_password = request.form.get("new_password", "").strip()
+
+    admin_message = None
+    admin_error = None
+
+    if not user_id_str or not new_password:
+        admin_error = "User and new password are required."
+    elif len(new_password) < 4:
+        admin_error = "New password should have at least 4 characters."
+    else:
+        try:
+            target_id = int(user_id_str)
+        except ValueError:
+            admin_error = "Invalid user id."
+        else:
+            target_user = next((u for u in users if u.get("id") == target_id), None)
+            if not target_user:
+                admin_error = "User not found."
+            else:
+                target_user["password_hash"] = generate_password_hash(new_password)
+                save_data(data)
+                admin_message = f"Password updated for user '{target_user.get('username')}'."
+
+    # reload summary pentru afișare
+    voyages = data.get("voyages", [])
+    routes = data.get("routes", [])
+    log_entries = data.get("log_entries", [])
+    contacts = data.get("contacts", [])
+    personal_contacts = data.get("personal_contacts", [])
+    weather_notes = data.get("weather_notes", [])
+
+    summary = {
+        "users": len(users),
+        "voyages": len(voyages),
+        "routes": len(routes),
+        "log_entries": len(log_entries),
+        "contacts": len(contacts),
+        "personal_contacts": len(personal_contacts),
+        "weather_notes": len(weather_notes),
+    }
 
     return render_template(
-        "index.html",
+        "admin.html",
+        users=users,
+        voyages=voyages,
         summary=summary,
-        voyage_stats=voyage_stats,
+        admin_message=admin_message,
+        admin_error=admin_error,
     )
 
 
@@ -149,11 +267,14 @@ def register():
         else:
             new_id = 1
 
-        user = {
+            user = {
             "id": new_id,
             "username": username,
             "password_hash": generate_password_hash(password),
+            "is_admin": False,   # cont normal, fără drepturi de admin
+            "can_post": True,    # poate posta (voyages, contacts etc.)
         }
+
 
         users.append(user)
         data["users"] = users

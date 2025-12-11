@@ -31,6 +31,16 @@
             "distance_nm": "110",
             "notes": "",
             "checklist": {}
+        },
+        {
+            "departure": "Ankara",
+            "destination": "Lisbon",
+            "etd": "2025-12-02T09:18",
+            "eta": "2025-12-18T19:10",
+            "distance_nm": "1500",
+            "notes": "Comunicate a lot with Bosfor Authorities",
+            "checklist": {},
+            "user_id": null
         }
     ],
     "routes": [
@@ -46,6 +56,20 @@
                 "crew": true,
                 "documents": true,
                 "safety": false
+            }
+        },
+        {
+            "name": "Varna-Ankara-Retour",
+            "departure": "Varna",
+            "destination": "Ankara",
+            "waypoints": "Varna-Constanta-Ankara",
+            "notes": "English Romanian and little Turkish necessary",
+            "checklist": {
+                "fuel": true,
+                "weather": true,
+                "crew": true,
+                "documents": true,
+                "safety": true
             }
         }
     ],
@@ -116,25 +140,28 @@
             "notes": "Cel mai tare manager, are camere dotate cu incarcatoare pentru uk inclusiv si roomservice fara taxe adaugate"
         }
     ],
+    "weather_notes": [],
     "users": [
         {
-            "voyages": [],
-            "routes": [],
-            "log_entries": [],
-            "contacts": [],
-            "personal_contacts": [],
-            "weather_notes": [],
-            "users": []
-        },
-        {
             "id": 1,
-            "username": "John",
-            "password_hash": "scrypt:32768:8:1$gaNgcRDCJrDiErZZ$53eec48ee27a2113514e396bbf7b3a2be9fd0a73d2472893f8fb2b93beea2b0aa55873c5fe1bfb21800f9aefbf1a3a304b1ca517c3006a9d97eb17a229d9c465"
+            "username": "admin",
+            "password_hash": "scrypt:32768:8:1$gaNgcRDCJrDiErZZ$53eec48ee27a2113514e396bbf7b3a2be9fd0a73d2472893f8fb2b93beea2b0aa55873c5fe1bfb21800f9aefbf1a3a304b1ca517c3006a9d97eb17a229d9c465",
+            "is_admin": true,
+            "can_post": true
         },
         {
             "id": 2,
+            "username": "John",
+            "password_hash": "scrypt:32768:8:1$gaNgcRDCJrDiErZZ$53eec48ee27a2113514e396bbf7b3a2be9fd0a73d2472893f8fb2b93beea2b0aa55873c5fe1bfb21800f9aefbf1a3a304b1ca517c3006a9d97eb17a229d9c465",
+            "is_admin": false,
+            "can_post": true
+        },
+        {
+            "id": 3,
             "username": "Victus",
-            "password_hash": "scrypt:32768:8:1$Xw3CCV1BRfI0d3uY$1019c5a1e437fae5ab7f2ed882265abeda49f3b2af614b3ecf3a1d7914e26f456afc9faff6408ddf05681a4b8e5440ff70e6f4c30259c542ac99f8651cee13a9"
+            "password_hash": "scrypt:32768:8:1$9SqXyIZyDEPJFWJt$03cd4f03745c05a8ea0c26d7a07aa3683bb029fe4da3bee819942b526c9bd6c921c4475f887326f84d9693965a69ac6839fd19db02ff545acfb795c27ccbb50e",
+            "is_admin": false,
+            "can_post": true
         }
     ]
 }
