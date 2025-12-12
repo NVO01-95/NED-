@@ -6,9 +6,106 @@ from collections import Counter
 import json
 import csv 
 import io
+import math
+from datetime import timedelta
 
 app = Flask(__name__)
 app.secret_key = "change-this-in-production"
+
+
+def haversine_nm(lat1, lon1, lat2, lon2):
+    """
+    Great-circle distance in nautical miles (NM).
+    Input: decimal degrees.
+    """
+    R_km = 6371.0
+    km_to_nm = 0.539956803
+
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    d_phi = math.radians(lat2 - lat1)
+    d_lam = math.radians(lon2 - lon1)
+
+    a = math.sin(d_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(d_lam / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    km = R_km * c
+    return km * km_to_nm
+
+
+def bearing_deg(lat1, lon1, lat2, lon2):
+    """
+    Initial bearing (0..360 degrees) from point 1 to point 2.
+    """
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    d_lam = math.radians(lon2 - lon1)
+
+    y = math.sin(d_lam) * math.cos(phi2)
+    x = math.cos(phi1) * math.sin(phi2) - math.sin(phi1) * math.cos(phi2) * math.cos(d_lam)
+
+    brng = math.degrees(math.atan2(y, x))
+    return (brng + 360) % 360
+
+
+def parse_waypoints(text):
+    """
+    Accepts multiline or semicolon-separated:
+      lat, lon
+      45.12, 29.89
+      44.16, 28.64
+
+    Returns list of tuples: [(lat, lon), ...]
+    Raises ValueError with a friendly message.
+    """
+    if not text or not text.strip():
+        raise ValueError("Waypoints are empty. Add at least 2 points (lat, lon).")
+
+    # split by newlines first, also allow ';'
+    raw_lines = []
+    for part in text.replace(";", "\n").splitlines():
+        line = part.strip()
+        if line:
+            raw_lines.append(line)
+
+    points = []
+    for i, line in enumerate(raw_lines, start=1):
+        # allow "lat, lon" or "lat lon"
+        if "," in line:
+            pieces = [p.strip() for p in line.split(",")]
+        else:
+            pieces = [p.strip() for p in line.split()]
+
+        if len(pieces) != 2:
+            raise ValueError(f"Waypoint line {i} is invalid. Use 'lat, lon' (example: 44.16, 28.64).")
+
+        try:
+            lat = float(pieces[0])
+            lon = float(pieces[1])
+        except ValueError:
+            raise ValueError(f"Waypoint line {i} has non-numeric values.")
+
+        if not (-90 <= lat <= 90):
+            raise ValueError(f"Waypoint line {i}: latitude must be between -90 and 90.")
+        if not (-180 <= lon <= 180):
+            raise ValueError(f"Waypoint line {i}: longitude must be between -180 and 180.")
+
+        points.append((lat, lon))
+
+    if len(points) < 2:
+        raise ValueError("You need at least 2 waypoints (start and end).")
+
+    return points
+
+
+def hours_to_hhmm(hours_float):
+    if hours_float is None:
+        return "-"
+    total_minutes = int(round(hours_float * 60))
+    h = total_minutes // 60
+    m = total_minutes % 60
+    return f"{h:02d}:{m:02d}"
+
 
 def compute_voyage_stats(voyages):
     """
@@ -534,13 +631,23 @@ def route_planner():
     data = load_data()
     routes = data.get("routes", [])
 
+    calc_result = None
+    calc_error = None
+
     if request.method == "POST":
+        # dacă vrei doar user logat să salveze rute:
+        if not session.get("user_id"):
+            return redirect(url_for("login"))
+
         route_name = request.form.get("route_name", "").strip()
         route_departure = request.form.get("route_departure", "").strip()
         route_destination = request.form.get("route_destination", "").strip()
-        waypoints = request.form.get("waypoints", "").strip()
+
+        speed_kn_str = request.form.get("speed_kn", "").strip()
+        waypoints_text = request.form.get("waypoints", "").strip()
         route_notes = request.form.get("route_notes", "").strip()
 
+        # checklist (dacă îl păstrezi)
         checklist = {
             "fuel": "fuel" in request.form,
             "weather": "weather" in request.form,
@@ -549,22 +656,121 @@ def route_planner():
             "safety": "safety" in request.form,
         }
 
-        new_route = {
-            "name": route_name,
-            "departure": route_departure,
-            "destination": route_destination,
-            "waypoints": waypoints,
-            "notes": route_notes,
-            "checklist": checklist,
-        }
+        # parse + calc
+        try:
+            if not speed_kn_str:
+                raise ValueError("Speed (kn) is required.")
+            speed_kn = float(speed_kn_str)
+            if speed_kn <= 0:
+                raise ValueError("Speed must be > 0 knots.")
 
-        routes.append(new_route)
-        data["routes"] = routes
-        save_data(data)
+            points = parse_waypoints(waypoints_text)
 
+            segments = []
+            total_nm = 0.0
+            total_hours = 0.0
+
+            for i in range(len(points) - 1):
+                (lat1, lon1) = points[i]
+                (lat2, lon2) = points[i + 1]
+
+                dist_nm = haversine_nm(lat1, lon1, lat2, lon2)
+                brng = bearing_deg(lat1, lon1, lat2, lon2)
+
+                seg_hours = dist_nm / speed_kn if speed_kn else None
+
+                segments.append({
+                    "from": {"lat": lat1, "lon": lon1},
+                    "to": {"lat": lat2, "lon": lon2},
+                    "distance_nm": round(dist_nm, 2),
+                    "bearing_deg": round(brng, 1),
+                    "eta_hours": round(seg_hours, 2) if seg_hours is not None else None,
+                    "eta_hhmm": hours_to_hhmm(seg_hours) if seg_hours is not None else "-",
+                })
+
+                total_nm += dist_nm
+                total_hours += seg_hours
+
+            calc_result = {
+                "speed_kn": speed_kn,
+                "total_nm": round(total_nm, 2),
+                "total_eta_hours": round(total_hours, 2),
+                "total_eta_hhmm": hours_to_hhmm(total_hours),
+                "segments": segments,
+            }
+
+            new_route = {
+                "name": route_name or f"{route_departure} - {route_destination}".strip(" -"),
+                "departure": route_departure,
+                "destination": route_destination,
+                "waypoints_raw": waypoints_text,
+                "notes": route_notes,
+                "checklist": checklist,
+                "calc": calc_result,
+                "author": session.get("username") or "Unknown",
+            }
+
+            routes.append(new_route)
+            data["routes"] = routes
+            save_data(data)
+
+            return redirect(url_for("route_planner"))
+
+        except Exception as e:
+            calc_error = str(e)
+
+    return render_template(
+        "route_planner.html",
+        routes=routes,
+        calc_result=calc_result,
+        calc_error=calc_error
+    )
+
+@app.route("/route/export/<int:index>")
+def export_route_csv(index):
+    data = load_data()
+    routes = data.get("routes", [])
+
+    if index < 0 or index >= len(routes):
         return redirect(url_for("route_planner"))
 
-    return render_template("route_planner.html", routes=routes)
+    r = routes[index]
+    calc = r.get("calc") or {}
+    segments = calc.get("segments") or []
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    writer.writerow(["route_name", "departure", "destination", "speed_kn", "total_nm", "total_eta_hhmm"])
+    writer.writerow([
+        r.get("name", ""),
+        r.get("departure", ""),
+        r.get("destination", ""),
+        calc.get("speed_kn", ""),
+        calc.get("total_nm", ""),
+        calc.get("total_eta_hhmm", ""),
+    ])
+
+    writer.writerow([])
+    writer.writerow(["seg_no", "from_lat", "from_lon", "to_lat", "to_lon", "distance_nm", "bearing_deg", "eta_hhmm"])
+
+    for i, s in enumerate(segments, start=1):
+        writer.writerow([
+            i,
+            s.get("from", {}).get("lat", ""),
+            s.get("from", {}).get("lon", ""),
+            s.get("to", {}).get("lat", ""),
+            s.get("to", {}).get("lon", ""),
+            s.get("distance_nm", ""),
+            s.get("bearing_deg", ""),
+            s.get("eta_hhmm", ""),
+        ])
+
+    response = make_response(output.getvalue())
+    safe_name = (r.get("name") or "route").replace(" ", "_")
+    response.headers["Content-Disposition"] = f"attachment; filename={safe_name}.csv"
+    response.headers["Content-Type"] = "text/csv; charset=utf-8"
+    return response
 
 
 @app.route("/logbook", methods=["GET", "POST"])

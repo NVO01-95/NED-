@@ -1,140 +1,145 @@
 {% extends "base.html" %}
-
 {% block title %}Route Planner · NED{% endblock %}
 
 {% block content %}
 <section class="ned-card">
-    <h2>Route Planner</h2>
-    <p>
-        Plan the detailed route for your voyage: main legs, waypoints and a simple
-        departure checklist attached to this route.
-    </p>
+  <h2>Route Planner</h2>
+  <p class="small-hint">Enter waypoints as coordinates. NED will calculate distance, bearing and ETA.</p>
 
-    <form method="post" action="{{ url_for('route_planner') }}" class="voyage-form">
-        <div class="form-row">
-            <label for="route_name">Route name</label>
-            <input
-                type="text"
-                id="route_name"
-                name="route_name"
-                placeholder="e.g. Tulcea - Constanța via Sulina"
-                required
-            >
-        </div>
+  {% if calc_error %}
+    <p style="color:#b00020; font-size:0.9rem;">{{ calc_error }}</p>
+  {% endif %}
 
-        <div class="form-row">
-            <label for="route_departure">Departure</label>
-            <input
-                type="text"
-                id="route_departure"
-                name="route_departure"
-                placeholder="Departure port / location"
-                required
-            >
-        </div>
+  <form method="post" action="{{ url_for('route_planner') }}" class="voyage-form">
+    <div class="form-row">
+      <label for="route_name">Route name</label>
+      <input id="route_name" name="route_name" type="text" placeholder="Optional (ex: Tulcea–Constanța)">
+    </div>
 
-        <div class="form-row">
-            <label for="route_destination">Destination</label>
-            <input
-                type="text"
-                id="route_destination"
-                name="route_destination"
-                placeholder="Destination port / location"
-                required
-            >
-        </div>
+    <div class="form-row">
+      <label for="route_departure">Departure</label>
+      <input id="route_departure" name="route_departure" type="text" placeholder="Port / location">
+    </div>
 
-        <div class="form-row">
-            <label for="waypoints">Waypoints / river miles</label>
-            <textarea
-                id="waypoints"
-                name="waypoints"
-                rows="3"
-                placeholder="List key waypoints, river miles or legs. One per line or separated by semicolons."
-            ></textarea>
-        </div>
+    <div class="form-row">
+      <label for="route_destination">Destination</label>
+      <input id="route_destination" name="route_destination" type="text" placeholder="Port / location">
+    </div>
 
-        <div class="form-row">
-            <label for="route_notes">Route notes</label>
-            <textarea
-                id="route_notes"
-                name="route_notes"
-                rows="3"
-                placeholder="Special traffic areas, shallow waters, bridges, reporting points..."
-            ></textarea>
-        </div>
+    <div class="form-row">
+      <label for="speed_kn">Speed (knots)</label>
+      <input id="speed_kn" name="speed_kn" type="number" step="0.1" min="0" placeholder="ex: 9.5" required>
+    </div>
 
-        <div class="form-row">
-            <label>Departure checklist for this route</label>
-            <div class="checklist-form">
-                <label>
-                    <input type="checkbox" name="fuel">
-                    Fuel checked
-                </label>
-                <label>
-                    <input type="checkbox" name="weather">
-                    Weather checked
-                </label>
-                <label>
-                    <input type="checkbox" name="crew">
-                    Crew briefed
-                </label>
-                <label>
-                    <input type="checkbox" name="documents">
-                    Documents on board
-                </label>
-                <label>
-                    <input type="checkbox" name="safety">
-                    Safety equipment checked
-                </label>
-            </div>
-        </div>
+    <div class="form-row">
+      <label for="waypoints">Waypoints (lat, lon)</label>
+      <textarea id="waypoints" name="waypoints" rows="6" placeholder="Example:
+45.17, 28.79
+44.16, 28.64
+41.01, 28.97" required></textarea>
+      <p class="small-hint">One point per line. Minimum 2 points. You can also separate with semicolons.</p>
+    </div>
 
-        <button type="submit" class="btn">Save route plan</button>
-    </form>
+    <div class="form-row">
+      <label for="route_notes">Notes</label>
+      <textarea id="route_notes" name="route_notes" rows="3" placeholder="Traffic, shallow waters, restrictions..."></textarea>
+    </div>
+
+    <div class="form-row">
+      <label>Pre-departure checklist</label>
+      <div class="checklist-form">
+        <label><input type="checkbox" name="fuel"> Fuel checked</label>
+        <label><input type="checkbox" name="weather"> Weather checked</label>
+        <label><input type="checkbox" name="crew"> Crew briefed</label>
+        <label><input type="checkbox" name="documents"> Documents on board</label>
+        <label><input type="checkbox" name="safety"> Safety briefing</label>
+      </div>
+    </div>
+
+    <button type="submit" class="btn">Save route + calculate</button>
+  </form>
 </section>
 
 {% if routes %}
 <section class="ned-card">
-    <h3>Saved route plans</h3>
-    <p>
-        All routes currently stored .
-        (Total: {{ routes|length }})
-    </p>
+  <h3>Saved routes</h3>
+  <table class="voyage-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Route</th>
+        <th>Total (NM)</th>
+        <th>ETA</th>
+        <th>Segments</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in routes %}
+      {% set route_index = loop.index0 %}
 
-    <table class="voyage-table">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Route</th>
-                <th>Departure → Destination</th>
-                <th>Checklist summary</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for r in routes %}
-            <tr>
-                <td>{{ loop.index }}</td>
-                <td>{{ r.name }}</td>
-                <td>
-                    <strong>{{ r.departure }}</strong>
-                    &rarr;
-                    <strong>{{ r.destination }}</strong>
-                </td>
-                <td>
-                    {% set cl = r.checklist if r.checklist is defined else {} %}
-                    <ul style="margin: 0; padding-left: 18px; font-size: 0.85rem;">
-                        <li>Fuel: {{ 'OK' if cl.fuel else 'pending' }}</li>
-                        <li>Weather: {{ 'OK' if cl.weather else 'pending' }}</li>
-                        <li>Crew: {{ 'OK' if cl.crew else 'pending' }}</li>
-                        <li>Documents: {{ 'OK' if cl.documents else 'pending' }}</li>
-                        <li>Safety: {{ 'OK' if cl.safety else 'pending' }}</li>
-                    </ul>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>
+          <strong>{{ r.name }}</strong><br>
+          <span class="small-hint">{{ r.departure }} → {{ r.destination }}</span>
+          {% if r.author %}
+            <br><span class="small-hint">by {{ r.author }}</span>
+          {% endif %}
+        </td>
+        <td>{{ r.calc.total_nm if r.calc else "-" }}</td>
+        <td>{{ r.calc.total_eta_hhmm if r.calc else "-" }}</td>
+        <td>
+          {% if r.calc and r.calc.segments %}
+            {{ r.calc.segments|length }}
+          {% else %}
+            -
+          {% endif %}
+        </td>
+        <td>
+          <a class="nav-link" href="{{ url_for('export_route_csv', index=route_index) }}">
+            Export CSV
+          </a>
+        </td>
+      </tr>
+
+      {% if r.calc and r.calc.segments %}
+      <tr>
+        <td colspan="6">
+          <div class="notes-section">
+            <strong>Segments</strong>
+            <table class="voyage-table" style="margin-top:8px;">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>From (lat,lon)</th>
+                  <th>To (lat,lon)</th>
+                  <th>NM</th>
+                  <th>Bearing</th>
+                  <th>ETA</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for s in r.calc.segments %}
+                <tr>
+                  <td>{{ loop.index }}</td>
+                  <td>{{ s.from.lat }}, {{ s.from.lon }}</td>
+                  <td>{{ s.to.lat }}, {{ s.to.lon }}</td>
+                  <td>{{ s.distance_nm }}</td>
+                  <td>{{ s.bearing_deg }}°</td>
+                  <td>{{ s.eta_hhmm }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </td>
+      </tr>
+      {% endif %}
+
+      {% endfor %}
+    </tbody>
+  </table>
 </section>
 {% endif %}
 {% endblock %}
