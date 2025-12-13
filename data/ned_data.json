@@ -71,6 +71,43 @@
                 "documents": true,
                 "safety": true
             }
+        },
+        {
+            "name": "experiment",
+            "departure": "nu mai stiu",
+            "destination": "orinde",
+            "waypoints_raw": "45.17, 28.79\r\n44.16, 28.64",
+            "notes": "",
+            "checklist": {
+                "fuel": false,
+                "weather": false,
+                "crew": false,
+                "documents": false,
+                "safety": false
+            },
+            "calc": {
+                "speed_kn": 9.0,
+                "total_nm": 60.98,
+                "total_eta_hours": 6.78,
+                "total_eta_hhmm": "06:47",
+                "segments": [
+                    {
+                        "from": {
+                            "lat": 45.17,
+                            "lon": 28.79
+                        },
+                        "to": {
+                            "lat": 44.16,
+                            "lon": 28.64
+                        },
+                        "distance_nm": 60.98,
+                        "bearing_deg": 186.1,
+                        "eta_hours": 6.78,
+                        "eta_hhmm": "06:47"
+                    }
+                ]
+            },
+            "author": "John"
         }
     ],
     "log_entries": [
