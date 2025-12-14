@@ -1,13 +1,14 @@
-from flask import Flask, render_template, request, redirect, url_for, session, make_response
+from flask import Flask, render_template, request, redirect, url_for, session, make_response, flash
 from data_utils import load_data, save_data
 from werkzeug.security import generate_password_hash, check_password_hash
 from collections import Counter
+from datetime import datetime
 
 import json
 import csv 
 import io
 import math
-from datetime import timedelta
+import re
 
 app = Flask(__name__)
 app.secret_key = "change-this-in-production"
@@ -48,20 +49,107 @@ def bearing_deg(lat1, lon1, lat2, lon2):
     return (brng + 360) % 360
 
 
+
+def _clean_coord_text(s: str) -> str:
+    return (
+        s.strip()
+         .replace("º", "°")
+         .replace("’", "'")
+         .replace("′", "'")
+         .replace("”", '"')
+         .replace("″", '"')
+    )
+
+def dms_to_decimal(deg: float, minutes: float, seconds: float, hemi: str) -> float:
+    value = abs(deg) + (minutes / 60.0) + (seconds / 3600.0)
+    hemi = hemi.upper()
+    if hemi in ("S", "W"):
+        value *= -1
+    return value
+
+def parse_single_coord(token: str, coord_type: str) -> float:
+    """
+    coord_type: 'lat' or 'lon' (folosit doar pentru validare range)
+    Acceptă:
+      - decimal: 44.16 / 28.64 (cu semn + sau -)
+      - DM: 44 10.2 N / 28 39.0 E
+      - DMS: 44 10 12 N / 28 39 00 E
+    Returnează valoare decimală.
+    """
+    t = _clean_coord_text(token).upper()
+
+    # 1) încercăm DECIMAL simplu
+    # ex: 44.16  sau -73.99
+    if re.fullmatch(r"[+-]?\d+(\.\d+)?", t):
+        val = float(t)
+        _validate_coord_range(val, coord_type)
+        return val
+
+    # 2) încercăm DM sau DMS cu hemisferă
+    # exemple acceptate:
+    # 44 10.2 N
+    # 44°10.2'N
+    # 44 10 12 N
+    # 44°10'12"N
+    #
+    # scoatem simbolurile în spații ca să putem split-ui ușor
+    work = (
+        t.replace("°", " ")
+         .replace("'", " ")
+         .replace('"', " ")
+         .replace(",", " ")
+    )
+    parts = [p for p in work.split() if p]
+
+    # Ultimul trebuie să fie N/S/E/W
+    if len(parts) < 3:
+        raise ValueError(f"Invalid coordinate '{token}'. Use decimal (44.16) or DM/DMS (44 10.2 N).")
+
+    hemi = parts[-1]
+    if hemi not in ("N", "S", "E", "W"):
+        raise ValueError(f"Missing hemisphere (N/S/E/W) in '{token}'.")
+
+    nums = parts[:-1]
+
+    if len(nums) == 2:
+        # DM: deg min.dec
+        deg = float(nums[0])
+        minutes = float(nums[1])
+        seconds = 0.0
+        val = dms_to_decimal(deg, minutes, seconds, hemi)
+    elif len(nums) == 3:
+        # DMS: deg min sec
+        deg = float(nums[0])
+        minutes = float(nums[1])
+        seconds = float(nums[2])
+        val = dms_to_decimal(deg, minutes, seconds, hemi)
+    else:
+        raise ValueError(f"Invalid coordinate '{token}'. Example: 44 10.2 N, 28 39.0 E")
+
+    _validate_coord_range(val, coord_type)
+    return val
+
+def _validate_coord_range(val: float, coord_type: str):
+    if coord_type == "lat":
+        if not (-90 <= val <= 90):
+            raise ValueError(f"Latitude {val} out of range (-90..90).")
+    elif coord_type == "lon":
+        if not (-180 <= val <= 180):
+            raise ValueError(f"Longitude {val} out of range (-180..180).")
+
+
+
 def parse_waypoints(text):
     """
-    Accepts multiline or semicolon-separated:
-      lat, lon
-      45.12, 29.89
+    Acceptă linii de tip:
       44.16, 28.64
-
-    Returns list of tuples: [(lat, lon), ...]
-    Raises ValueError with a friendly message.
+      44 10.2 N, 28 39.0 E
+      44°10'12"N, 28°39'00"E
+    Return: [(lat, lon), ...]
     """
     if not text or not text.strip():
         raise ValueError("Waypoints are empty. Add at least 2 points (lat, lon).")
 
-    # split by newlines first, also allow ';'
     raw_lines = []
     for part in text.replace(";", "\n").splitlines():
         line = part.strip()
@@ -70,25 +158,25 @@ def parse_waypoints(text):
 
     points = []
     for i, line in enumerate(raw_lines, start=1):
-        # allow "lat, lon" or "lat lon"
+        # încercăm să separăm lat și lon
+        # dacă linia are virgula principală, împărțim pe prima virgulă
         if "," in line:
-            pieces = [p.strip() for p in line.split(",")]
+            left, right = line.split(",", 1)
+            lat_token = left.strip()
+            lon_token = right.strip()
         else:
-            pieces = [p.strip() for p in line.split()]
-
-        if len(pieces) != 2:
-            raise ValueError(f"Waypoint line {i} is invalid. Use 'lat, lon' (example: 44.16, 28.64).")
+            # fallback: separăm prin "  " sau " | " etc. (mai rar)
+            parts = line.split()
+            if len(parts) < 2:
+                raise ValueError(f"Waypoint line {i} invalid. Use 'lat, lon'.")
+            # ultima jumătate lon? nu e safe; mai bine cerem virgulă în fallback
+            raise ValueError(f"Waypoint line {i} needs a comma between lat and lon. Example: 44 10.2 N, 28 39.0 E")
 
         try:
-            lat = float(pieces[0])
-            lon = float(pieces[1])
-        except ValueError:
-            raise ValueError(f"Waypoint line {i} has non-numeric values.")
-
-        if not (-90 <= lat <= 90):
-            raise ValueError(f"Waypoint line {i}: latitude must be between -90 and 90.")
-        if not (-180 <= lon <= 180):
-            raise ValueError(f"Waypoint line {i}: longitude must be between -180 and 180.")
+            lat = parse_single_coord(lat_token, "lat")
+            lon = parse_single_coord(lon_token, "lon")
+        except Exception as e:
+            raise ValueError(f"Waypoint line {i}: {e}")
 
         points.append((lat, lon))
 
@@ -96,6 +184,7 @@ def parse_waypoints(text):
         raise ValueError("You need at least 2 waypoints (start and end).")
 
     return points
+
 
 
 def hours_to_hhmm(hours_float):
@@ -726,6 +815,71 @@ def route_planner():
         calc_error=calc_error
     )
 
+@app.route("/route/geojson/<int:index>")
+def export_route_geojson(index):
+    data = load_data()
+    routes = data.get("routes", [])
+
+    if index < 0 or index >= len(routes):
+        flash("Route not found.", "error")
+        return redirect(url_for("route_planner"))
+
+    r = routes[index]
+
+    try:
+        coords = []
+        calc = r.get("calc") or {}
+        segments = calc.get("segments") or []
+
+        if segments:
+            first = segments[0].get("from", {})
+            coords.append([first.get("lon"), first.get("lat")])  # GeoJSON: [lon, lat]
+            for s in segments:
+                to = s.get("to", {})
+                coords.append([to.get("lon"), to.get("lat")])
+        else:
+            raw = r.get("waypoints_raw", "").strip()
+            if not raw:
+                raise ValueError("This route has no waypoints saved yet.")
+
+            points = parse_waypoints(raw)
+            if len(points) < 2:
+                raise ValueError("You need at least 2 waypoints to export GeoJSON.")
+
+            coords = [[lon, lat] for (lat, lon) in points]
+
+        # verificare finală
+        if len(coords) < 2:
+            raise ValueError("Not enough points to build a LineString.")
+
+        feature = {
+            "type": "Feature",
+            "properties": {
+                "name": r.get("name", ""),
+                "departure": r.get("departure", ""),
+                "destination": r.get("destination", ""),
+                "total_nm": calc.get("total_nm"),
+                "eta_hhmm": calc.get("total_eta_hhmm"),
+                "author": r.get("author", ""),
+            },
+            "geometry": {
+                "type": "LineString",
+                "coordinates": coords
+            }
+        }
+
+        geojson = {"type": "FeatureCollection", "features": [feature]}
+
+        response = make_response(json.dumps(geojson, ensure_ascii=False, indent=2))
+        response.headers["Content-Type"] = "application/geo+json; charset=utf-8"
+        response.headers["Content-Disposition"] = f'attachment; filename=route_{index+1}.geojson'
+        return response
+
+    except Exception as e:
+        flash(f"GeoJSON export failed: {e}", "error")
+        return redirect(url_for("route_planner"))
+
+
 @app.route("/route/export/<int:index>")
 def export_route_csv(index):
     data = load_data()
@@ -1084,6 +1238,120 @@ def reset_settings():
         import_error=None,
         import_success=False,
     )
+
+def get_phrasebook():
+    # NOTE: Keep this list simple now; we can expand later.
+    # For safety/accuracy, translations beyond EN are left blank for now,
+    # and can be filled/validated later.
+    return [
+        {
+            "ro": "Bună ziua, domnule căpitan, sunt nava ...",
+            "en": "Good day, Captain, this is vessel ...",
+            "de": "",
+            "fr": "",
+            "ru": "",
+            "hu": "",
+        },
+        {
+            "ro": "Eu o să-mi păstrez drumul.",
+            "en": "I will keep my course.",
+            "de": "",
+            "fr": "",
+            "ru": "",
+            "hu": "",
+        },
+        {
+            "ro": "Ne întâlnim dreapta-dreapta.",
+            "en": "We will pass starboard to starboard.",
+            "de": "",
+            "fr": "",
+            "ru": "",
+            "hu": "",
+        },
+        {
+            "ro": "Ne întâlnim la austec.",
+            "en": "We will pass port to port.",
+            "de": "",
+            "fr": "",
+            "ru": "",
+            "hu": "",
+        },
+        {
+            "ro": "Nu am posibilitatea de manevră.",
+            "en": "I am not under command / unable to manoeuvre.",
+            "de": "",
+            "fr": "",
+            "ru": "",
+            "hu": "",
+        },
+        {
+            "ro": "Vreau să ancorez.",
+            "en": "I intend to anchor.",
+            "de": "",
+            "fr": "",
+            "ru": "",
+            "hu": "",
+        },
+        {
+            "ro": "Să aveți o zi bună.",
+            "en": "Have a good day.",
+            "de": "",
+            "fr": "",
+            "ru": "",
+            "hu": "",
+        },
+        {
+            "ro": "Mulțumesc.",
+            "en": "Thank you.",
+            "de": "",
+            "fr": "",
+            "ru": "",
+            "hu": "",
+        },
+        {
+            "ro": "Am o problemă la motoare.",
+            "en": "I have an engine problem.",
+            "de": "",
+            "fr": "",
+            "ru": "",
+            "hu": "",
+        },
+    ]
+
+
+@app.route("/help")
+def help_page():
+    phrases = get_phrasebook()
+    return render_template("help.html", phrases=phrases)
+
+
+@app.route("/chat", methods=["GET", "POST"])
+def chat():
+    data = load_data()
+    messages = data.get("chat_messages", [])
+
+    # Guests can read, only logged-in users can post
+    if request.method == "POST":
+        if not session.get("user_id"):
+            return redirect(url_for("login"))
+
+        text = request.form.get("message", "").strip()
+        if text:
+            msg = {
+                "id": (messages[-1]["id"] + 1) if messages else 1,
+                "author": session.get("username", "user"),
+                "text": text,
+                "ts": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            }
+            messages.append(msg)
+            data["chat_messages"] = messages
+            save_data(data)
+
+        return redirect(url_for("chat"))
+
+    # show latest first (optional); keep it simple:
+    return render_template("chat.html", messages=messages)
+
 
 
 if __name__ == "__main__":

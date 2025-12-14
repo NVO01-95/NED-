@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Help · NED{% endblock %}
+
+{% block content %}
+<section class="ned-card">
+  <h2>Help Center</h2>
+  <p class="small-hint">
+    Quick tools for communication, safety, and common onboard situations.
+  </p>
+</section>
+
+<section class="ned-card">
+  <h2>Language Barrier Broker</h2>
+  <p class="small-hint">
+    Pick a phrase in Romanian, then use the English version on VHF / bridge comms.
+    (We’ll add verified DE/FR/RU/HU next.)
+  </p>
+
+  <div class="notes-section">
+    <table class="voyage-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>RO</th>
+          <th>EN</th>
+          <th>DE</th>
+          <th>FR</th>
+          <th>RU</th>
+          <th>HU</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in phrases %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ p.ro }}</td>
+          <td><strong>{{ p.en }}</strong></td>
+          <td>{{ p.de if p.de else "-" }}</td>
+          <td>{{ p.fr if p.fr else "-" }}</td>
+          <td>{{ p.ru if p.ru else "-" }}</td>
+          <td>{{ p.hu if p.hu else "-" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <p class="small-hint" style="margin-top:10px;">
+      Tip: next step is to let logged-in users propose translations + admin moderation.
+    </p>
+  </div>
+</section>
+{% endblock %}

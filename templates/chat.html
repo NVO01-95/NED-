@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Chat · NED{% endblock %}
+
+{% block content %}
+<section class="ned-card">
+  <h2>Route Chat (Global)</h2>
+  <p class="small-hint">
+    Guests can read. Logged-in users can post.
+    (Later: chat per route / per port.)
+  </p>
+
+  {% if not current_username %}
+    <p class="small-hint">
+      You are viewing as guest. To send a message, please <a href="{{ url_for('login') }}">login</a>.
+    </p>
+  {% endif %}
+</section>
+
+<section class="ned-card">
+  <h3>Messages</h3>
+
+  {% if messages %}
+    <ul style="list-style: none; padding-left: 0; margin: 0;">
+      {% for m in messages %}
+        <li class="weather-note-item" style="margin-bottom:10px;">
+          <div>
+            <div style="font-weight:600; color:#003366;">
+              {{ m.author }} <span class="small-hint">· {{ m.ts }}</span>
+            </div>
+            <div style="margin-top:4px; white-space: pre-wrap;">{{ m.text }}</div>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="small-hint">No messages yet.</p>
+  {% endif %}
+</section>
+
+{% if current_username %}
+<section class="ned-card">
+  <h3>Send a message</h3>
+  <form method="post" action="{{ url_for('chat') }}" class="voyage-form">
+    <div class="form-row">
+      <label for="message">Message</label>
+      <textarea id="message" name="message" rows="3" placeholder="Write your message..." required></textarea>
+    </div>
+    <button class="btn" type="submit">Send</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

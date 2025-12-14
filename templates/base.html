@@ -33,11 +33,24 @@
         <a href="{{ url_for('contacts') }}">Contacts</a>
         <a href="{{ url_for('weather') }}">Weather</a>
         <a href="{{ url_for('settings') }}">Settings</a>
+        <a href="{{ url_for('help_page') }}">Help</a>
+        <a href="{{ url_for('chat') }}">Chat</a>
+
     </nav>
 
     <main class="ned-main">
-        {% block content %}
-        {% endblock %}
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-wrap">
+                    {% for category, msg in messages %}
+                        <div class="flash flash-{{ category }}">{{ msg }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
     </main>
 
     <footer class="ned-footer">
