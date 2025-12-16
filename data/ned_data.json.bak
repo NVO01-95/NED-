@@ -207,12 +207,6 @@
       "author": "John",
       "text": "Hello sailors!",
       "ts": "2025-12-16 13:01"
-    },
-    {
-      "id": 2,
-      "author": "Victus",
-      "text": "bonjour, how are you, can we help you?",
-      "ts": "2025-12-16 13:02"
     }
   ]
 }
