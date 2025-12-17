@@ -185,6 +185,37 @@ def parse_waypoints(text):
 
     return points
 
+def ensure_route_ids(data: dict) -> dict:
+    routes = data.get("routes", [])
+    changed = False
+
+    max_id = 0
+    for r in routes:
+        rid = r.get("id")
+        if isinstance(rid, int) and rid > max_id:
+            max_id = rid
+
+    for r in routes:
+        if not isinstance(r.get("id"), int):
+            max_id += 1
+            r["id"] = max_id
+            changed = True
+
+    if changed:
+        data["routes"] = routes
+        save_data(data)
+
+    return data
+
+def get_current_user(data):
+    uid = session.get("user_id")
+    users = data.get("users", [])
+    return next((u for u in users if u.get("id") == uid), None)
+
+def is_admin_user(data):
+    u = get_current_user(data)
+    return bool(u and u.get("is_admin", False))
+
 
 
 def hours_to_hhmm(hours_float):
@@ -283,27 +314,6 @@ def inject_current_user():
         "current_user_id": session.get("user_id"),
     }
 
-
-# @app.route("/")
-# def home():
-#     data = load_data()
-#     voyages = data.get("voyages", [])
-
-#     summary = {
-#         "voyages": len(voyages),
-#         "routes": len(data.get("routes", [])),
-#         "log_entries": len(data.get("log_entries", [])),
-#         "contacts": len(data.get("contacts", [])) + len(data.get("personal_contacts", [])),
-#         "weather_notes": len(data.get("weather_notes", [])),
-#     }
-
-#     voyage_stats = compute_voyage_stats(voyages)
-
-#     return render_template(
-#         "index.html",
-#         summary=summary,
-#         voyage_stats=voyage_stats,
-#     )
 
 
 @app.route("/")
@@ -434,43 +444,30 @@ def register():
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
 
-        # validări simple
         if not username or not password:
             return render_template("register.html", error="Username and password are required.")
-
         if len(password) < 4:
             return render_template("register.html", error="Password should have at least 4 characters.")
+        if any(u.get("username") == username for u in users):
+            return render_template("register.html", error="Username already taken.")
 
-        # verifică dacă există deja username-ul
-        for u in users:
-            if u.get("username") == username:
-                return render_template("register.html", error="Username already taken.")
+        new_id = (max([u.get("id", 0) for u in users]) + 1) if users else 1
 
-        # calculează următorul id
-        if users:
-            max_id = max(u.get("id", 0) for u in users)
-            new_id = max_id + 1
-        else:
-            new_id = 1
-
-            user = {
+        user = {
             "id": new_id,
             "username": username,
             "password_hash": generate_password_hash(password),
-            "is_admin": False,   # cont normal, fără drepturi de admin
-            "can_post": True,    # poate posta (voyages, contacts etc.)
+            "is_admin": False,
+            "can_post": True,
         }
-
 
         users.append(user)
         data["users"] = users
         save_data(data)
 
-        # auto-login după register
         session["user_id"] = new_id
         session["username"] = username
-
-        return redirect(url_for("home"))  
+        return redirect(url_for("home"))
 
     return render_template("register.html", error=None)
 
@@ -718,13 +715,16 @@ def update_checklist(index):
 @app.route("/route", methods=["GET", "POST"])
 def route_planner():
     data = load_data()
+
+    # ensure every saved route has an integer "id"
+    data = ensure_route_ids(data)
     routes = data.get("routes", [])
 
     calc_result = None
     calc_error = None
 
     if request.method == "POST":
-        # dacă vrei doar user logat să salveze rute:
+        # only logged-in users can save routes
         if not session.get("user_id"):
             return redirect(url_for("login"))
 
@@ -736,7 +736,6 @@ def route_planner():
         waypoints_text = request.form.get("waypoints", "").strip()
         route_notes = request.form.get("route_notes", "").strip()
 
-        # checklist (dacă îl păstrezi)
         checklist = {
             "fuel": "fuel" in request.form,
             "weather": "weather" in request.form,
@@ -745,7 +744,6 @@ def route_planner():
             "safety": "safety" in request.form,
         }
 
-        # parse + calc
         try:
             if not speed_kn_str:
                 raise ValueError("Speed (kn) is required.")
@@ -760,21 +758,21 @@ def route_planner():
             total_hours = 0.0
 
             for i in range(len(points) - 1):
-                (lat1, lon1) = points[i]
-                (lat2, lon2) = points[i + 1]
+                lat1, lon1 = points[i]
+                lat2, lon2 = points[i + 1]
 
                 dist_nm = haversine_nm(lat1, lon1, lat2, lon2)
                 brng = bearing_deg(lat1, lon1, lat2, lon2)
 
-                seg_hours = dist_nm / speed_kn if speed_kn else None
+                seg_hours = dist_nm / speed_kn
 
                 segments.append({
                     "from": {"lat": lat1, "lon": lon1},
                     "to": {"lat": lat2, "lon": lon2},
                     "distance_nm": round(dist_nm, 2),
                     "bearing_deg": round(brng, 1),
-                    "eta_hours": round(seg_hours, 2) if seg_hours is not None else None,
-                    "eta_hhmm": hours_to_hhmm(seg_hours) if seg_hours is not None else "-",
+                    "eta_hours": round(seg_hours, 2),
+                    "eta_hhmm": hours_to_hhmm(seg_hours),
                 })
 
                 total_nm += dist_nm
@@ -789,13 +787,18 @@ def route_planner():
             }
 
             new_route = {
+                # route-level fields
                 "name": route_name or f"{route_departure} - {route_destination}".strip(" -"),
                 "departure": route_departure,
                 "destination": route_destination,
                 "waypoints_raw": waypoints_text,
                 "notes": route_notes,
                 "checklist": checklist,
+
+                # computed results
                 "calc": calc_result,
+
+                # meta
                 "author": session.get("username") or "Unknown",
             }
 
@@ -814,6 +817,7 @@ def route_planner():
         calc_result=calc_result,
         calc_error=calc_error
     )
+
 
 @app.route("/route/geojson/<int:index>")
 def export_route_geojson(index):
@@ -1325,33 +1329,72 @@ def help_page():
     return render_template("help.html", phrases=phrases)
 
 
-@app.route("/chat", methods=["GET", "POST"])
-def chat():
+@app.route("/route/chat/<int:route_id>", methods=["GET", "POST"])
+def route_chat(route_id):
     data = load_data()
-    messages = data.get("chat_messages", [])
+    data = ensure_route_ids(data)  # se asigură că toate rutele au id
+    routes = data.get("routes", [])
 
-    # Guests can read, only logged-in users can post
+    route = next((r for r in routes if r.get("id") == route_id), None)
+    if not route:
+        flash("Route not found.", "error")
+        return redirect(url_for("route_planner"))
+
+    # guest poate vedea, doar user logat poate posta
     if request.method == "POST":
         if not session.get("user_id"):
+            flash("Please log in to post in route chat.", "error")
             return redirect(url_for("login"))
+
+        # dacă ai can_post pe user
+        current_user = get_current_user(data)
+        if current_user and not current_user.get("can_post", True):
+            flash("Posting is disabled for your account.", "error")
+            return redirect(url_for("route_chat", route_id=route_id))
 
         text = request.form.get("message", "").strip()
         if text:
-            msg = {
-                "id": (messages[-1]["id"] + 1) if messages else 1,
+            chat = route.get("chat", [])
+            msg_id = (chat[-1].get("id", 0) + 1) if chat else 1
+
+            chat.append({
+                "id": msg_id,
                 "author": session.get("username", "user"),
+                "author_id": session.get("user_id"),
                 "text": text,
                 "ts": datetime.now().strftime("%Y-%m-%d %H:%M"),
-            }
-            messages.append(msg)
-            data["chat_messages"] = messages
+            })
+
+            route["chat"] = chat
             save_data(data)
 
-        return redirect(url_for("chat"))
+        return redirect(url_for("route_chat", route_id=route_id))
 
-    # show latest first (optional); keep it simple:
-    return render_template("chat.html", messages=messages)
+    messages = route.get("chat", [])
+    return render_template("chat.html", route=route, messages=messages, is_admin=is_admin_user(data))
 
+
+@app.route("/route/chat/<int:route_id>/delete/<int:msg_id>", methods=["POST"])
+def admin_delete_route_message(route_id, msg_id):
+    data = load_data()
+    data = ensure_route_ids(data)
+
+    if not is_admin_user(data):
+        return redirect(url_for("login"))
+
+    routes = data.get("routes", [])
+    route = next((r for r in routes if r.get("id") == route_id), None)
+    if not route:
+        flash("Route not found.", "error")
+        return redirect(url_for("route_planner"))
+
+    chat = route.get("chat", [])
+    new_chat = [m for m in chat if m.get("id") != msg_id]
+    route["chat"] = new_chat
+    save_data(data)
+
+    flash("Message removed.", "success")
+    return redirect(url_for("route_chat", route_id=route_id))
 
 
 if __name__ == "__main__":

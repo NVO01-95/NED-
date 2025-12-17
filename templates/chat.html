@@ -27,7 +27,16 @@
             <div style="font-weight:600; color:#003366;">
               {{ m.author }} <span class="small-hint">· {{ m.ts }}</span>
             </div>
+
             <div style="margin-top:4px; white-space: pre-wrap;">{{ m.text }}</div>
+
+            {% if is_admin %}
+              <form method="post"
+                    action="{{ url_for('admin_delete_route_message', route_id=route.id, msg_id=m.id) }}"
+                    style="margin-top:6px;">
+                <button class="btn btn-danger btn-small" type="submit">Delete</button>
+              </form>
+            {% endif %}
           </div>
         </li>
       {% endfor %}
@@ -40,7 +49,7 @@
 {% if current_username %}
 <section class="ned-card">
   <h3>Send a message</h3>
-  <form method="post" action="{{ url_for('chat') }}" class="voyage-form">
+  <form method="post" action="{{ url_for('route_chat', route_id=route.id) }}" class="voyage-form">
     <div class="form-row">
       <label for="message">Message</label>
       <textarea id="message" name="message" rows="3" placeholder="Write your message..." required></textarea>

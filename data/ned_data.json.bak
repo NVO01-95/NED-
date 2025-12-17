@@ -56,7 +56,17 @@
         "crew": true,
         "documents": true,
         "safety": false
-      }
+      },
+      "id": 1,
+      "chat": [
+        {
+          "id": 2,
+          "author": "John",
+          "author_id": 2,
+          "text": "Hello i am going to visit Constanta, what do you sugest?",
+          "ts": "2025-12-17 22:58"
+        }
+      ]
     },
     {
       "name": "Varna-Ankara-Retour",
@@ -70,7 +80,8 @@
         "crew": true,
         "documents": true,
         "safety": true
-      }
+      },
+      "id": 2
     },
     {
       "name": "experiment",
@@ -107,7 +118,8 @@
           }
         ]
       },
-      "author": "John"
+      "author": "John",
+      "id": 3
     }
   ],
   "log_entries": [
@@ -207,6 +219,12 @@
       "author": "John",
       "text": "Hello sailors!",
       "ts": "2025-12-16 13:01"
+    },
+    {
+      "id": 2,
+      "author": "Victus",
+      "text": "bonjour, how are you, can we help you?",
+      "ts": "2025-12-16 13:02"
     }
   ]
 }

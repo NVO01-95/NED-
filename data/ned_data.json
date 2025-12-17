@@ -56,7 +56,9 @@
         "crew": true,
         "documents": true,
         "safety": false
-      }
+      },
+      "id": 1,
+      "chat": []
     },
     {
       "name": "Varna-Ankara-Retour",
@@ -70,7 +72,8 @@
         "crew": true,
         "documents": true,
         "safety": true
-      }
+      },
+      "id": 2
     },
     {
       "name": "experiment",
@@ -107,7 +110,8 @@
           }
         ]
       },
-      "author": "John"
+      "author": "John",
+      "id": 3
     }
   ],
   "log_entries": [
