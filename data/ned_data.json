@@ -58,7 +58,15 @@
         "safety": false
       },
       "id": 1,
-      "chat": []
+      "chat": [
+        {
+          "id": 1,
+          "author": "Victus",
+          "author_id": 3,
+          "text": "helloooooo guys",
+          "ts": "2025-12-17 23:14"
+        }
+      ]
     },
     {
       "name": "Varna-Ankara-Retour",
@@ -73,7 +81,16 @@
         "documents": true,
         "safety": true
       },
-      "id": 2
+      "id": 2,
+      "chat": [
+        {
+          "id": 1,
+          "author": "John",
+          "author_id": 2,
+          "text": "ciaooo",
+          "ts": "2025-12-17 23:15"
+        }
+      ]
     },
     {
       "name": "experiment",

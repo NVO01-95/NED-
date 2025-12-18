@@ -1,6 +1,7 @@
 import json
 import os
 from typing import Any, Dict
+import re
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -17,6 +18,31 @@ DEFAULT_DATA: Dict[str, Any] = {
     "chat_messages": []
 }
 
+def _norm(s: str) -> str:
+    return re.sub(r"\s+", " ", (s or "").strip().lower())
+
+def route_tokens(route: dict) -> set[str]:
+    tokens = set()
+
+    dep = _norm(route.get("departure"))
+    dst = _norm(route.get("destination"))
+    if dep:
+        tokens.add(dep)
+    if dst:
+        tokens.add(dst)
+
+    # waypoint-urile tale sunt text; pentru MVP extragem “cuvinte/fragmente” utile
+    wp = _norm(route.get("waypoints_raw") or route.get("waypoints") or "")
+    # split simplu pe delimitatori frecvenți
+    for part in re.split(r"[;,\n\-–→]+", wp):
+        part = _norm(part)
+        if part and len(part) >= 3:
+            tokens.add(part)
+
+    return tokens
+
+def routes_overlap(a: dict, b: dict) -> bool:
+    return len(route_tokens(a) & route_tokens(b)) > 0
 
 def _ensure_data_file_exists() -> None:
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -62,3 +88,25 @@ def save_data(data: Dict[str, Any]) -> None:
 
     with open(DATA_PATH, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+def ensure_route_ids(data: dict) -> dict:
+    routes = data.get("routes", [])
+    changed = False
+
+    max_id = 0
+    for r in routes:
+        rid = r.get("id")
+        if isinstance(rid, int) and rid > max_id:
+            max_id = rid
+
+    for r in routes:
+        if not isinstance(r.get("id"), int):
+            max_id += 1
+            r["id"] = max_id
+            changed = True
+
+    if changed:
+        data["routes"] = routes
+        save_data(data)
+
+    return data

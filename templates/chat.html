@@ -16,6 +16,21 @@
   {% endif %}
 </section>
 
+{% if related_routes %}
+<section class="ned-card">
+  <h3>Related route chats</h3>
+  <ul style="list-style:none; padding-left:0; margin:0;">
+    {% for rr in related_routes %}
+      <li style="margin-bottom:6px;">
+        <a class="nav-link" href="{{ url_for('route_chat', route_id=rr.id) }}">
+          {{ rr.name }} ({{ rr.departure }} → {{ rr.destination }})
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
 <section class="ned-card">
   <h3>Messages</h3>
 

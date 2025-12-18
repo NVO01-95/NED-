@@ -60,11 +60,11 @@
       "id": 1,
       "chat": [
         {
-          "id": 2,
-          "author": "John",
-          "author_id": 2,
-          "text": "Hello i am going to visit Constanta, what do you sugest?",
-          "ts": "2025-12-17 22:58"
+          "id": 1,
+          "author": "Victus",
+          "author_id": 3,
+          "text": "helloooooo guys",
+          "ts": "2025-12-17 23:14"
         }
       ]
     },

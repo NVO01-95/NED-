@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, make_response, flash
-from data_utils import load_data, save_data
+from data_utils import load_data, save_data, ensure_route_ids, routes_overlap   
+
 from werkzeug.security import generate_password_hash, check_password_hash
 from collections import Counter
 from datetime import datetime
@@ -1340,6 +1341,11 @@ def route_chat(route_id):
         flash("Route not found.", "error")
         return redirect(url_for("route_planner"))
 
+    related_routes = [
+    r for r in routes
+    if r.get("id") != route_id and routes_overlap(route, r)
+]
+
     # guest poate vedea, doar user logat poate posta
     if request.method == "POST":
         if not session.get("user_id"):
@@ -1371,7 +1377,15 @@ def route_chat(route_id):
         return redirect(url_for("route_chat", route_id=route_id))
 
     messages = route.get("chat", [])
-    return render_template("chat.html", route=route, messages=messages, is_admin=is_admin_user(data))
+    return render_template(
+    "chat.html",
+    route=route,
+    messages=messages,
+    related_routes=related_routes,
+    is_admin=is_admin_user(data),
+    current_username=session.get("username")
+)
+
 
 
 @app.route("/route/chat/<int:route_id>/delete/<int:msg_id>", methods=["POST"])
