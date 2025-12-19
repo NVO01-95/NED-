@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, make_response, flash
-from data_utils import load_data, save_data, ensure_route_ids, routes_overlap   
-
+from data_utils import load_data, save_data, ensure_route_ids   
+from chat_logic import add_route_message, delete_route_message, can_user_post, related_routes_for 
 from werkzeug.security import generate_password_hash, check_password_hash
 from collections import Counter
 from datetime import datetime
@@ -1341,41 +1341,34 @@ def route_chat(route_id):
         flash("Route not found.", "error")
         return redirect(url_for("route_planner"))
 
-    related_routes = [
-    r for r in routes
-    if r.get("id") != route_id and routes_overlap(route, r)
-]
-
+   
     # guest poate vedea, doar user logat poate posta
     if request.method == "POST":
         if not session.get("user_id"):
             flash("Please log in to post in route chat.", "error")
             return redirect(url_for("login"))
 
-        # dacă ai can_post pe user
         current_user = get_current_user(data)
-        if current_user and not current_user.get("can_post", True):
+        if not can_user_post(current_user):
             flash("Posting is disabled for your account.", "error")
             return redirect(url_for("route_chat", route_id=route_id))
 
         text = request.form.get("message", "").strip()
-        if text:
-            chat = route.get("chat", [])
-            msg_id = (chat[-1].get("id", 0) + 1) if chat else 1
-
-            chat.append({
-                "id": msg_id,
-                "author": session.get("username", "user"),
-                "author_id": session.get("user_id"),
-                "text": text,
-                "ts": datetime.now().strftime("%Y-%m-%d %H:%M"),
-            })
-
-            route["chat"] = chat
+        ok, err = add_route_message(
+            route,
+            author=session.get("username", "user"),
+            author_id=session.get("user_id"),
+            text=text,
+        )
+        if ok:
             save_data(data)
+        else:
+            flash(err or "Message not sent.", "error")
 
         return redirect(url_for("route_chat", route_id=route_id))
 
+    messages = route.get("chat", [])
+    related_routes = related_routes_for(routes, route, limit=10)
     messages = route.get("chat", [])
     return render_template(
     "chat.html",
@@ -1385,8 +1378,6 @@ def route_chat(route_id):
     is_admin=is_admin_user(data),
     current_username=session.get("username")
 )
-
-
 
 @app.route("/route/chat/<int:route_id>/delete/<int:msg_id>", methods=["POST"])
 def admin_delete_route_message(route_id, msg_id):
@@ -1402,12 +1393,10 @@ def admin_delete_route_message(route_id, msg_id):
         flash("Route not found.", "error")
         return redirect(url_for("route_planner"))
 
-    chat = route.get("chat", [])
-    new_chat = [m for m in chat if m.get("id") != msg_id]
-    route["chat"] = new_chat
+    removed = delete_route_message(route, msg_id)
     save_data(data)
 
-    flash("Message removed.", "success")
+    flash("Message removed." if removed else "Message not found.", "success" if removed else "error")
     return redirect(url_for("route_chat", route_id=route_id))
 
 

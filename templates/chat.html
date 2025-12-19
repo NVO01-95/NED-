@@ -9,14 +9,7 @@
     (Later: chat per route / per port.)
   </p>
 
-  {% if not current_username %}
-    <p class="small-hint">
-      You are viewing as guest. To send a message, please <a href="{{ url_for('login') }}">login</a>.
-    </p>
-  {% endif %}
-</section>
-
-{% if related_routes %}
+  {% if related_routes %}
 <section class="ned-card">
   <h3>Related route chats</h3>
   <ul style="list-style:none; padding-left:0; margin:0;">
@@ -30,6 +23,7 @@
   </ul>
 </section>
 {% endif %}
+
 
 <section class="ned-card">
   <h3>Messages</h3>
