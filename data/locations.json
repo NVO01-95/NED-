@@ -1,0 +1,42 @@
+{
+  "tulcea": {
+    "lat": 45.177518,
+    "lon": 28.8016348,
+    "display": "Tulcea, RO"
+  },
+  "constanta": {
+    "lat": 44.1598013,
+    "lon": 28.6348138,
+    "display": "Constanța, RO"
+  },
+  "varna": {
+    "lat": 43.20725,
+    "lon": 27.9167,
+    "display": "Varna, BG"
+  },
+  "istanbul": {
+    "lat": 41.0082376,
+    "lon": 28.9783589,
+    "display": "Istanbul, TR"
+  },
+  "le havre": {
+    "lat": 49.49437,
+    "lon": 0.107929,
+    "display": "Le Havre, FR"
+  },
+  "lisabona": {
+    "lat": 38.722252,
+    "lon": -9.139337,
+    "display": "Lisbon, PT"
+  },
+  "lisboa": {
+    "lat": 38.722252,
+    "lon": -9.139337,
+    "display": "Lisbon, PT"
+  },
+  "vienna": {
+    "lat": 48.208174,
+    "lon": 16.373819,
+    "display": "Vienna, AU"
+  }
+}

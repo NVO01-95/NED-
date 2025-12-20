@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Admin · Locations{% endblock %}
+
+{% block content %}
+<section class="ned-card">
+  <h2>Admin: Locations</h2>
+  <p class="small-hint">
+    Add or update a saved location (used for route waypoints when user writes a place name).
+  </p>
+</section>
+
+<section class="ned-card">
+  <h3>Add / Update location</h3>
+  <form method="post" action="{{ url_for('admin_locations') }}" class="voyage-form">
+    <div class="form-row">
+      <label for="name">Name (key)</label>
+      <input id="name" name="name" type="text" placeholder="e.g. Tulcea" required>
+      <div class="small-hint">Case doesn’t matter. Saved as lowercase internally.</div>
+    </div>
+
+    <div class="form-row">
+      <label for="display">Display name (optional)</label>
+      <input id="display" name="display" type="text" placeholder="e.g. Tulcea, RO">
+    </div>
+
+    <div class="form-row">
+      <label for="lat">Latitude</label>
+      <input id="lat" name="lat" type="text" placeholder="45.177518" required>
+    </div>
+
+    <div class="form-row">
+      <label for="lon">Longitude</label>
+      <input id="lon" name="lon" type="text" placeholder="28.801635" required>
+    </div>
+
+    <button class="btn" type="submit">Save location</button>
+  </form>
+</section>
+
+<section class="ned-card">
+  <h3>Saved locations ({{ keys|length }})</h3>
+
+  {% if keys %}
+    <table class="voyage-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Display</th>
+          <th>Lat</th>
+          <th>Lon</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for k in keys %}
+          {% set rec = locations[k] %}
+          <tr>
+            <td><strong>{{ k }}</strong></td>
+            <td>{{ rec.display if rec.display else "-" }}</td>
+            <td>{{ rec.lat }}</td>
+            <td>{{ rec.lon }}</td>
+            <td>
+              <form method="post" action="{{ url_for('admin_delete_location') }}">
+                <input type="hidden" name="name" value="{{ k }}">
+                <button class="btn btn-danger btn-small" type="submit">Delete</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="small-hint">No saved locations yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

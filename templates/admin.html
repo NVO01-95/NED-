@@ -23,6 +23,24 @@
 </section>
 
 <section class="ned-card">
+    <h3>Admin tools</h3>
+    <p class="small-hint">
+        Quick links to admin-only utilities.
+    </p>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+        <a class="nav-link" href="{{ url_for('admin_locations') }}">Manage Locations</a>
+       
+        
+        
+    </div>
+
+    <p class="small-hint" style="margin-top: 8px;">
+        Locations are used when users type place names in Route Planner waypoints (instead of coordinates).
+    </p>
+</section>
+
+<section class="ned-card">
     <h3>Global data overview</h3>
     <ul>
         <li><strong>Users:</strong> {{ summary.users }}</li>

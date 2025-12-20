@@ -129,6 +129,201 @@
       },
       "author": "John",
       "id": 3
+    },
+    {
+      "name": "Aventura",
+      "departure": "",
+      "destination": "",
+      "waypoints_raw": "varna \r\ntulcea",
+      "notes": "",
+      "checklist": {
+        "fuel": false,
+        "weather": false,
+        "crew": false,
+        "documents": false,
+        "safety": false
+      },
+      "calc": {
+        "speed_kn": 10.0,
+        "total_nm": 124.28,
+        "total_eta_hours": 12.43,
+        "total_eta_hhmm": "12:26",
+        "segments": [
+          {
+            "from": {
+              "lat": 43.20725,
+              "lon": 27.9167
+            },
+            "to": {
+              "lat": 45.177518,
+              "lon": 28.8016348
+            },
+            "distance_nm": 124.28,
+            "bearing_deg": 17.5,
+            "eta_hours": 12.43,
+            "eta_hhmm": "12:26"
+          }
+        ]
+      },
+      "author": "John",
+      "author_id": 2,
+      "id": 4
+    },
+    {
+      "name": "los palenos",
+      "departure": "",
+      "destination": "",
+      "waypoints_raw": "tulcea\r\nconstanta",
+      "notes": "",
+      "checklist": {
+        "fuel": false,
+        "weather": false,
+        "crew": false,
+        "documents": false,
+        "safety": false
+      },
+      "calc": {
+        "speed_kn": 15.0,
+        "total_nm": 61.52,
+        "total_eta_hours": 4.1,
+        "total_eta_hhmm": "04:06",
+        "segments": [
+          {
+            "from": {
+              "lat": 45.177518,
+              "lon": 28.8016348
+            },
+            "to": {
+              "lat": 44.1598013,
+              "lon": 28.6348138
+            },
+            "distance_nm": 61.52,
+            "bearing_deg": 186.7,
+            "eta_hours": 4.1,
+            "eta_hhmm": "04:06"
+          }
+        ]
+      },
+      "author": "John",
+      "author_id": 2,
+      "id": 5
+    },
+    {
+      "name": "",
+      "departure": "",
+      "destination": "",
+      "waypoints_raw": "Varna \r\nTulcea",
+      "notes": "",
+      "checklist": {
+        "fuel": false,
+        "weather": false,
+        "crew": false,
+        "documents": false,
+        "safety": false
+      },
+      "calc": {
+        "speed_kn": 10.0,
+        "total_nm": 124.28,
+        "total_eta_hours": 12.43,
+        "total_eta_hhmm": "12:26",
+        "segments": [
+          {
+            "from": {
+              "lat": 43.20725,
+              "lon": 27.9167
+            },
+            "to": {
+              "lat": 45.177518,
+              "lon": 28.8016348
+            },
+            "distance_nm": 124.28,
+            "bearing_deg": 17.5,
+            "eta_hours": 12.43,
+            "eta_hhmm": "12:26"
+          }
+        ]
+      },
+      "author": "John",
+      "author_id": 2,
+      "id": 6
+    },
+    {
+      "name": "Todos",
+      "departure": "",
+      "destination": "",
+      "waypoints_raw": "varna\r\ntulcea",
+      "notes": "",
+      "checklist": {
+        "fuel": false,
+        "weather": false,
+        "crew": false,
+        "documents": false,
+        "safety": false
+      },
+      "calc": {
+        "speed_kn": 18.0,
+        "total_nm": 124.28,
+        "total_eta_hours": 6.9,
+        "total_eta_hhmm": "06:54",
+        "segments": [
+          {
+            "from": {
+              "lat": 43.20725,
+              "lon": 27.9167
+            },
+            "to": {
+              "lat": 45.177518,
+              "lon": 28.8016348
+            },
+            "distance_nm": 124.28,
+            "bearing_deg": 17.5,
+            "eta_hours": 6.9,
+            "eta_hhmm": "06:54"
+          }
+        ]
+      },
+      "author": "John",
+      "author_id": 2,
+      "id": 7
+    },
+    {
+      "name": "Best aventura",
+      "departure": "Le Havre -Fra",
+      "destination": "Lisbon-Por",
+      "waypoints_raw": "49.494370, 0.107929\r\n38.722252, -9.139337",
+      "notes": "friends, drinks, succes",
+      "checklist": {
+        "fuel": true,
+        "weather": true,
+        "crew": true,
+        "documents": true,
+        "safety": true
+      },
+      "calc": {
+        "speed_kn": 16.0,
+        "total_nm": 758.46,
+        "total_eta_hours": 47.4,
+        "total_eta_hhmm": "47:24",
+        "segments": [
+          {
+            "from": {
+              "lat": 49.49437,
+              "lon": 0.107929
+            },
+            "to": {
+              "lat": 38.722252,
+              "lon": -9.139337
+            },
+            "distance_nm": 758.46,
+            "bearing_deg": 215.0,
+            "eta_hours": 47.4,
+            "eta_hhmm": "47:24"
+          }
+        ]
+      },
+      "author": "John",
+      "author_id": 2,
+      "id": 8
     }
   ],
   "log_entries": [
@@ -235,5 +430,25 @@
       "text": "bonjour, how are you, can we help you?",
       "ts": "2025-12-16 13:02"
     }
-  ]
+  ],
+  "geocode_cache": {
+    "varna": {
+      "lat": 43.20725,
+      "lon": 27.9167,
+      "display": "Varna, Bulgaria",
+      "ts": "2025-12-20 22:53"
+    },
+    "tulcea": {
+      "lat": 45.177518,
+      "lon": 28.8016348,
+      "display": "Tulcea, Romania",
+      "ts": "2025-12-20 22:53"
+    },
+    "constanta": {
+      "lat": 44.1598013,
+      "lon": 28.6348138,
+      "display": "Constanța, Romania",
+      "ts": "2025-12-20 22:55"
+    }
+  }
 }

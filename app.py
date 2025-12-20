@@ -4,7 +4,8 @@ from chat_logic import add_route_message, delete_route_message, can_user_post, r
 from werkzeug.security import generate_password_hash, check_password_hash
 from collections import Counter
 from datetime import datetime
-from geocoding import geocode_with_cache
+from location_store import load_locations, add_location, delete_location
+
 
 
 import json
@@ -140,18 +141,18 @@ def _validate_coord_range(val: float, coord_type: str):
         if not (-180 <= val <= 180):
             raise ValueError(f"Longitude {val} out of range (-180..180).")
 
-def parse_waypoints_mixed(data, waypoints_text: str):
+def parse_waypoints_mixed(waypoints_text: str):
     """
     Acceptă:
       - linii cu "lat, lon"
-      - sau nume de locații ("Varna")
+      - sau nume de locații din locations.json
     Returnează listă de (lat, lon).
     """
     points = []
     lines = [ln.strip() for ln in (waypoints_text or "").splitlines() if ln.strip()]
 
     for ln in lines:
-        # încercăm coordonate "lat,lon"
+        # 1) coordonate "lat, lon"
         if "," in ln:
             a, b = ln.split(",", 1)
             try:
@@ -162,15 +163,15 @@ def parse_waypoints_mixed(data, waypoints_text: str):
             except ValueError:
                 pass
 
-        # altfel: geocode nume locație (cu cache)
-        res = geocode_with_cache(data, ln, save_fn=save_data)
+        # 2) nume locație
+        res = resolve_location(ln)
         if not res:
-            raise ValueError(f"Could not find coordinates for location: {ln}")
+            raise ValueError(f"Location not found: {ln}. Use coordinates or ask admin to add it.")
         lat, lon, _display = res
         points.append((lat, lon))
 
     if len(points) < 2:
-        raise ValueError("You need at least 2 waypoints (coords or place names).")
+        raise ValueError("You need at least 2 waypoints (coords or saved locations).")
 
     return points
 
@@ -405,6 +406,58 @@ def admin_panel():
         admin_error=None,
     )
 
+
+@app.route("/admin/locations", methods=["GET", "POST"])
+def admin_locations():
+    data = load_data()
+    if not is_admin_user(data):
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        lat_str = request.form.get("lat", "").strip()
+        lon_str = request.form.get("lon", "").strip()
+        display = request.form.get("display", "").strip()
+
+        if not name:
+            flash("Name is required.", "error")
+            return redirect(url_for("admin_locations"))
+
+        try:
+            lat = float(lat_str)
+            lon = float(lon_str)
+        except Exception:
+            flash("Lat/Lon must be valid numbers.", "error")
+            return redirect(url_for("admin_locations"))
+
+        add_location(name, lat, lon, display)
+        flash("Location added/updated.", "success")
+        return redirect(url_for("admin_locations"))
+
+    locations = load_locations()
+    # sort keys for display
+    keys = sorted(locations.keys())
+    return render_template("admin_locations.html", locations=locations, keys=keys)
+
+
+@app.route("/admin/locations/delete", methods=["POST"])
+def admin_delete_location():
+    data = load_data()
+    if not is_admin_user(data):
+        return redirect(url_for("login"))
+
+    name = request.form.get("name", "").strip()
+    if not name:
+        flash("Missing location name.", "error")
+        return redirect(url_for("admin_locations"))
+
+    ok = delete_location(name)
+    if ok:
+        flash("Location deleted.", "success")
+    else:
+        flash("Location not found.", "error")
+
+    return redirect(url_for("admin_locations"))
 
 
 @app.route("/admin/reset_password", methods=["POST"])
@@ -788,7 +841,8 @@ def route_planner():
                 raise ValueError("Speed must be > 0 knots.")
 
             # AICI: folosim mixed parser (coords + place names)
-            points = parse_waypoints_mixed(data, waypoints_text)
+            points = parse_waypoints_mixed(waypoints_text)
+
 
             segments = []
             total_nm = 0.0
