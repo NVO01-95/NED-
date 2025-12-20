@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Route Map · NED{% endblock %}
+
+{% block content %}
+<section class="ned-card">
+  <h2>Route Map</h2>
+  <div class="small-hint">
+    {{ route.departure }} → {{ route.destination }}
+    {% if total_nm is not none %} · {{ total_nm }} NM{% endif %}
+    {% if total_eta %} · ETA {{ total_eta }}{% endif %}
+  </div>
+
+  <div style="margin-top:10px;">
+    <a class="nav-link" href="{{ url_for('route_planner') }}">Back to Route Planner</a>
+    <a class="nav-link" href="{{ url_for('route_chat', route_id=route.id) }}">Open Route Chat</a>
+  </div>
+</section>
+
+<section class="ned-card">
+  <div id="map" style="height: 520px; border-radius: 10px; overflow: hidden;"></div>
+  <div class="small-hint" style="margin-top:8px;">
+    © OpenStreetMap contributors
+  </div>
+</section>
+
+<!-- Leaflet (free) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+  const map = L.map('map');
+
+  // OSM tiles (ok pentru dev/test; pentru trafic mare se schimbă provider/self-host)
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  async function loadRoute() {
+    const url = "{{ url_for('route_geojson_by_id', route_id=route.id) }}";
+    const res = await fetch(url);
+    const gj = await res.json();
+
+    if (!gj.features || gj.features.length === 0) {
+      map.setView([45.2, 28.8], 7); // fallback (RO)
+      return;
+    }
+
+    const layer = L.geoJSON(gj).addTo(map);
+    map.fitBounds(layer.getBounds(), { padding: [20, 20] });
+
+    // Markers: start/end
+    const coords = gj.features[0].geometry.coordinates;
+    const start = coords[0];
+    const end = coords[coords.length - 1];
+    L.marker([start[1], start[0]]).addTo(map).bindPopup("Start");
+    L.marker([end[1], end[0]]).addTo(map).bindPopup("End");
+  }
+
+  loadRoute();
+</script>
+{% endblock %}

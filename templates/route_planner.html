@@ -101,6 +101,7 @@
              <a class="nav-link" href="{{ url_for('export_route_csv', index=route_index) }}">
                Export CSV
              </a>
+             <a class="nav-link" href="{{ url_for('route_map', route_id=r.id) }}">Map</a>
              <a class="nav-link" href="{{ url_for('route_chat', route_id=r.id) }}">Route chat</a>
              <a class="nav-link" href="{{ url_for('export_route_geojson', index=route_index) }}">
                GeoJSON

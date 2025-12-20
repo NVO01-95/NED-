@@ -15,8 +15,10 @@ DEFAULT_DATA: Dict[str, Any] = {
     "personal_contacts": [],
     "weather_notes": [],
     "users": [],
-    "chat_messages": []
+    "chat_messages": [],
+    "geocode_cache": {}   
 }
+
 
 def _norm(s: str) -> str:
     return re.sub(r"\s+", " ", (s or "").strip().lower())

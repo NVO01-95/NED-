@@ -4,6 +4,8 @@ from chat_logic import add_route_message, delete_route_message, can_user_post, r
 from werkzeug.security import generate_password_hash, check_password_hash
 from collections import Counter
 from datetime import datetime
+from geocoding import geocode_with_cache
+
 
 import json
 import csv 
@@ -138,6 +140,39 @@ def _validate_coord_range(val: float, coord_type: str):
         if not (-180 <= val <= 180):
             raise ValueError(f"Longitude {val} out of range (-180..180).")
 
+def parse_waypoints_mixed(data, waypoints_text: str):
+    """
+    Acceptă:
+      - linii cu "lat, lon"
+      - sau nume de locații ("Varna")
+    Returnează listă de (lat, lon).
+    """
+    points = []
+    lines = [ln.strip() for ln in (waypoints_text or "").splitlines() if ln.strip()]
+
+    for ln in lines:
+        # încercăm coordonate "lat,lon"
+        if "," in ln:
+            a, b = ln.split(",", 1)
+            try:
+                lat = float(a.strip())
+                lon = float(b.strip())
+                points.append((lat, lon))
+                continue
+            except ValueError:
+                pass
+
+        # altfel: geocode nume locație (cu cache)
+        res = geocode_with_cache(data, ln, save_fn=save_data)
+        if not res:
+            raise ValueError(f"Could not find coordinates for location: {ln}")
+        lat, lon, _display = res
+        points.append((lat, lon))
+
+    if len(points) < 2:
+        raise ValueError("You need at least 2 waypoints (coords or place names).")
+
+    return points
 
 
 def parse_waypoints(text):
@@ -752,7 +787,8 @@ def route_planner():
             if speed_kn <= 0:
                 raise ValueError("Speed must be > 0 knots.")
 
-            points = parse_waypoints(waypoints_text)
+            # AICI: folosim mixed parser (coords + place names)
+            points = parse_waypoints_mixed(data, waypoints_text)
 
             segments = []
             total_nm = 0.0
@@ -788,19 +824,15 @@ def route_planner():
             }
 
             new_route = {
-                # route-level fields
                 "name": route_name or f"{route_departure} - {route_destination}".strip(" -"),
                 "departure": route_departure,
                 "destination": route_destination,
                 "waypoints_raw": waypoints_text,
                 "notes": route_notes,
                 "checklist": checklist,
-
-                # computed results
                 "calc": calc_result,
-
-                # meta
                 "author": session.get("username") or "Unknown",
+                "author_id": session.get("user_id"),  # IMPORTANT pentru permisiuni
             }
 
             routes.append(new_route)
@@ -818,6 +850,7 @@ def route_planner():
         calc_result=calc_result,
         calc_error=calc_error
     )
+
 
 
 @app.route("/route/geojson/<int:index>")
@@ -883,6 +916,61 @@ def export_route_geojson(index):
     except Exception as e:
         flash(f"GeoJSON export failed: {e}", "error")
         return redirect(url_for("route_planner"))
+
+
+@app.route("/route/<int:route_id>/geojson")
+def route_geojson_by_id(route_id):
+    data = load_data()
+    data = ensure_route_ids(data)
+    routes = data.get("routes", [])
+
+    r = next((x for x in routes if x.get("id") == route_id), None)
+    if not r:
+        flash("Route not found.", "error")
+        return redirect(url_for("route_planner"))
+
+    try:
+        coords = []
+        calc = r.get("calc") or {}
+        segments = calc.get("segments") or []
+
+        if segments:
+            first = segments[0].get("from", {})
+            coords.append([first.get("lon"), first.get("lat")])  # GeoJSON = [lon, lat]
+            for s in segments:
+                to = s.get("to", {})
+                coords.append([to.get("lon"), to.get("lat")])
+        else:
+            raw = (r.get("waypoints_raw") or "").strip()
+            if not raw:
+                raise ValueError("This route has no waypoints saved yet.")
+            points = parse_waypoints(raw)
+            if len(points) < 2:
+                raise ValueError("You need at least 2 waypoints.")
+            coords = [[lon, lat] for (lat, lon) in points]
+
+        if len(coords) < 2:
+            raise ValueError("Not enough points for a LineString.")
+
+        feature = {
+            "type": "Feature",
+            "properties": {
+                "id": r.get("id"),
+                "name": r.get("name", ""),
+                "departure": r.get("departure", ""),
+                "destination": r.get("destination", ""),
+                "total_nm": calc.get("total_nm"),
+                "eta_hhmm": calc.get("total_eta_hhmm"),
+                "author": r.get("author", ""),
+            },
+            "geometry": {"type": "LineString", "coordinates": coords},
+        }
+
+        return {"type": "FeatureCollection", "features": [feature]}
+
+    except Exception as e:
+        return {"type": "FeatureCollection", "features": [], "error": str(e)}
+
 
 
 @app.route("/route/export/<int:index>")
@@ -1330,6 +1418,27 @@ def help_page():
     return render_template("help.html", phrases=phrases)
 
 
+@app.route("/route/<int:route_id>/map")
+def route_map(route_id):
+    data = load_data()
+    data = ensure_route_ids(data)
+    routes = data.get("routes", [])
+
+    r = next((x for x in routes if x.get("id") == route_id), None)
+    if not r:
+        flash("Route not found.", "error")
+        return redirect(url_for("route_planner"))
+
+    calc = r.get("calc") or {}
+    return render_template(
+        "route_map.html",
+        route=r,
+        current_username=session.get("username"),
+        total_nm=calc.get("total_nm"),
+        total_eta=calc.get("total_eta_hhmm"),
+    )
+
+
 @app.route("/route/chat/<int:route_id>", methods=["GET", "POST"])
 def route_chat(route_id):
     data = load_data()
@@ -1341,7 +1450,6 @@ def route_chat(route_id):
         flash("Route not found.", "error")
         return redirect(url_for("route_planner"))
 
-   
     # guest poate vedea, doar user logat poate posta
     if request.method == "POST":
         if not session.get("user_id"):

@@ -458,3 +458,16 @@ a:hover {
     background: #f0f3f9;
     color: #003366;
 }
+
+.ned-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #fff;
+    border-top: 1px solid #ddd;
+    padding: 10px 0;
+    text-align: center;
+    font-size: 0.85rem;
+    color: #666;
+}
