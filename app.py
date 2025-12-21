@@ -4,7 +4,8 @@ from chat_logic import add_route_message, delete_route_message, can_user_post, r
 from werkzeug.security import generate_password_hash, check_password_hash
 from collections import Counter
 from datetime import datetime
-from location_store import load_locations, add_location, delete_location
+from location_store import load_locations, add_location, delete_location, resolve_location
+from phrases_store import load_phrases_data, filter_phrases
 
 
 
@@ -1560,6 +1561,25 @@ def admin_delete_route_message(route_id, msg_id):
 
     flash("Message removed." if removed else "Message not found.", "success" if removed else "error")
     return redirect(url_for("route_chat", route_id=route_id))
+
+@app.route("/communication")
+def communication():
+    data = load_phrases_data()
+
+    category = request.args.get("category", "").strip()
+    q = request.args.get("q", "").strip()
+
+    categories = data.get("categories", []) or []
+    phrases = filter_phrases(data, category=category, q=q)
+
+    return render_template(
+        "communication.html",
+        categories=categories,
+        phrases=phrases,
+        selected_category=category,
+        q=q
+    )
+
 
 
 if __name__ == "__main__":

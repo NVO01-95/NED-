@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Communication · NED{% endblock %}
+
+{% block content %}
+<section class="ned-card">
+  <h2>Maritime Communication Phrases</h2>
+  <p class="small-hint">
+    Quick multilingual phrases for inland navigation (RO / EN / DE / FR / RU + RU phonetic).
+  </p>
+</section>
+
+<section class="ned-card">
+  <h3>Filter</h3>
+  <form method="get" action="{{ url_for('communication') }}" class="voyage-form">
+    <div class="form-row">
+      <label for="category">Category</label>
+      <select id="category" name="category">
+        <option value="">All categories</option>
+        {% for c in categories %}
+          <option value="{{ c.key }}" {% if selected_category == c.key %}selected{% endif %}>
+            {{ c.label }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-row">
+      <label for="q">Search</label>
+      <input id="q" name="q" type="text" value="{{ q }}" placeholder="Search phrase…">
+      <div class="small-hint">Search checks all languages + RU phonetic.</div>
+    </div>
+
+    <button class="btn btn-small" type="submit">Apply</button>
+    <a class="nav-link" href="{{ url_for('communication') }}" style="margin-left:10px;">Reset</a>
+  </form>
+</section>
+
+<section class="ned-card">
+  <h3>Phrases ({{ phrases|length }})</h3>
+
+  {% if phrases %}
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      {% for p in phrases %}
+        {% set t = p.texts %}
+        <div class="weather-note-item" style="padding:10px;">
+          <div style="font-weight:700; color:#003366;">
+            #{{ p.id }} · {{ p.category|capitalize }}
+          </div>
+
+          <div style="margin-top:8px;">
+            <div><strong>RO:</strong> {{ t.ro }}</div>
+            <div><strong>EN:</strong> {{ t.en }}</div>
+            <div><strong>DE:</strong> {{ t.de }}</div>
+            <div><strong>FR:</strong> {{ t.fr }}</div>
+            <div><strong>RU:</strong> {{ t.ru }}</div>
+            <div class="small-hint"><strong>RU (phonetic):</strong> {{ t.ru_lat }}</div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="small-hint">No phrases match the current filter.</p>
+  {% endif %}
+</section>
+{% endblock %}

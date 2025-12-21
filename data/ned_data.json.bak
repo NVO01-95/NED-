@@ -322,6 +322,45 @@
         ]
       },
       "author": "John",
+      "author_id": 2,
+      "id": 8
+    },
+    {
+      "name": "As",
+      "departure": "Tulcea",
+      "destination": "Viena",
+      "waypoints_raw": "Tulcea\r\n48.185000, 16.403000",
+      "notes": "",
+      "checklist": {
+        "fuel": true,
+        "weather": true,
+        "crew": true,
+        "documents": true,
+        "safety": true
+      },
+      "calc": {
+        "speed_kn": 12.0,
+        "total_nm": 540.96,
+        "total_eta_hours": 45.08,
+        "total_eta_hhmm": "45:05",
+        "segments": [
+          {
+            "from": {
+              "lat": 45.177518,
+              "lon": 28.8016348
+            },
+            "to": {
+              "lat": 48.185,
+              "lon": 16.403
+            },
+            "distance_nm": 540.96,
+            "bearing_deg": 293.9,
+            "eta_hours": 45.08,
+            "eta_hhmm": "45:05"
+          }
+        ]
+      },
+      "author": "John",
       "author_id": 2
     }
   ],

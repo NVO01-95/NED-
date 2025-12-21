@@ -1,0 +1,130 @@
+{
+  "version": "0.1",
+  "languages": ["ro", "en", "de", "fr", "ru", "ru_lat"],
+  "categories": [
+    { "key": "general", "label": "General" },
+    { "key": "passing", "label": "Passing / Meeting" },
+    { "key": "maneuvering", "label": "Maneuvering" },
+    { "key": "emergency", "label": "Emergency" },
+    { "key": "courtesy", "label": "Courtesy" }
+  ],
+  "phrases": [
+    {
+      "id": 1,
+      "category": "general",
+      "tags": ["intro", "vessel"],
+      "texts": {
+        "ro": "Bună ziua, domnule căpitan, sunt nava ...",
+        "en": "Good day, Captain, this is vessel ...",
+        "de": "Guten Tag, Kapitän, hier ist das Schiff ...",
+        "fr": "Bonjour, Capitaine, ici le navire ...",
+        "ru": "Добрый день, капитан, это судно ...",
+        "ru_lat": "Dóbryy den’, kapitan, éta sudnó ..."
+      }
+    },
+    {
+      "id": 2,
+      "category": "maneuvering",
+      "tags": ["course"],
+      "texts": {
+        "ro": "Eu o să-mi păstrez drumul.",
+        "en": "I will keep my course.",
+        "de": "Ich halte meinen Kurs.",
+        "fr": "Je maintiens mon cap.",
+        "ru": "Я буду держать свой курс.",
+        "ru_lat": "Ya búdu derját’ svoy kurs."
+      }
+    },
+    {
+      "id": 3,
+      "category": "passing",
+      "tags": ["meeting", "starboard"],
+      "texts": {
+        "ro": "Ne întâlnim dreapta-dreapta.",
+        "en": "We will pass starboard to starboard.",
+        "de": "Wir passieren Steuerbord an Steuerbord.",
+        "fr": "Nous nous croiserons tribord à tribord.",
+        "ru": "Разойдёмся правыми бортами.",
+        "ru_lat": "Razaydiómsya právy-mi bortámi."
+      }
+    },
+    {
+      "id": 4,
+      "category": "passing",
+      "tags": ["meeting", "port"],
+      "texts": {
+        "ro": "Ne întâlnim babord-babord.",
+        "en": "We will pass port to port.",
+        "de": "Wir passieren Backbord an Backbord.",
+        "fr": "Nous nous croiserons bâbord à bâbord.",
+        "ru": "Разойдёмся левыми бортами.",
+        "ru_lat": "Razaydiómsya lévy-mi bortámi."
+      }
+    },
+    {
+      "id": 5,
+      "category": "emergency",
+      "tags": ["unable", "maneuver"],
+      "texts": {
+        "ro": "Nu am posibilitatea de manevră.",
+        "en": "I am not under command / unable to manoeuvre.",
+        "de": "Ich bin manövrierunfähig / nicht manövrierfähig.",
+        "fr": "Je suis incapable de manœuvrer / sans capacité de manœuvre.",
+        "ru": "Я не управляюсь / не могу маневрировать.",
+        "ru_lat": "Ya ne upravlyáyus’ / ne magú manevrírovat’."
+      }
+    },
+    {
+      "id": 6,
+      "category": "maneuvering",
+      "tags": ["anchor"],
+      "texts": {
+        "ro": "Vreau să ancorez.",
+        "en": "I intend to anchor.",
+        "de": "Ich beabsichtige zu ankern.",
+        "fr": "J’ai l’intention de mouiller l’ancre.",
+        "ru": "Я намерен(а) встать на якорь.",
+        "ru_lat": "Ya naméren(a) vstát’ na yákor’."
+      }
+    },
+    {
+      "id": 7,
+      "category": "courtesy",
+      "tags": ["goodbye"],
+      "texts": {
+        "ro": "Să aveți o zi bună.",
+        "en": "Have a good day.",
+        "de": "Einen schönen Tag noch.",
+        "fr": "Bonne journée.",
+        "ru": "Хорошего дня.",
+        "ru_lat": "Kharóșeva dnyá."
+      }
+    },
+    {
+      "id": 8,
+      "category": "courtesy",
+      "tags": ["thanks"],
+      "texts": {
+        "ro": "Mulțumesc.",
+        "en": "Thank you.",
+        "de": "Danke.",
+        "fr": "Merci.",
+        "ru": "Спасибо.",
+        "ru_lat": "Spasíbo."
+      }
+    },
+    {
+      "id": 9,
+      "category": "emergency",
+      "tags": ["engine"],
+      "texts": {
+        "ro": "Am o problemă la motoare.",
+        "en": "I have an engine problem.",
+        "de": "Ich habe ein Maschinenproblem.",
+        "fr": "J’ai un problème de moteur.",
+        "ru": "У меня проблема с двигателем.",
+        "ru_lat": "U menya problema s dvígatelyem."
+      }
+    }
+  ]
+}

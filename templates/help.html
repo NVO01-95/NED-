@@ -1,52 +1,108 @@
 {% extends "base.html" %}
-{% block title %}Help · NED{% endblock %}
+{% block title %}Help & Support · NED{% endblock %}
 
 {% block content %}
+
 <section class="ned-card">
-  <h2>Help Center</h2>
+  <h2>Help & Support</h2>
   <p class="small-hint">
-    Quick tools for communication, safety, and common onboard situations.
+    This page is for application support, bug reports and feature requests.
+    For operational phrases, go to <a href="{{ url_for('communication') }}">Communication</a>.
   </p>
 </section>
 
 <section class="ned-card">
-  <h2>Language Barrier Broker</h2>
+  <h3>Before you contact support</h3>
+  <ul>
+    <li>Make sure you are using the latest saved data (refresh the page).</li>
+    <li>If a feature behaves strangely, try logging out and logging in again.</li>
+    <li>For route issues, double-check waypoint format:
+      <code>lat, lon</code> or saved location names (Admin Locations).</li>
+  </ul>
+</section>
+
+<section class="ned-card">
+  <h3>Report a bug</h3>
   <p class="small-hint">
-    Pick a phrase in Romanian, then use the English version on VHF / bridge comms.
-    (We’ll add verified DE/FR/RU/HU next.)
+    Please include as much detail as possible so we can reproduce the problem.
   </p>
 
-  <div class="notes-section">
-    <table class="voyage-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>RO</th>
-          <th>EN</th>
-          <th>DE</th>
-          <th>FR</th>
-          <th>RU</th>
-          <th>HU</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for p in phrases %}
-        <tr>
-          <td>{{ loop.index }}</td>
-          <td>{{ p.ro }}</td>
-          <td><strong>{{ p.en }}</strong></td>
-          <td>{{ p.de if p.de else "-" }}</td>
-          <td>{{ p.fr if p.fr else "-" }}</td>
-          <td>{{ p.ru if p.ru else "-" }}</td>
-          <td>{{ p.hu if p.hu else "-" }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="weather-note-item" style="padding: 10px;">
+    <p style="margin:0;"><strong>Include:</strong></p>
+    <ul style="margin-top:8px;">
+      <li>What you tried to do (steps).</li>
+      <li>What you expected to happen.</li>
+      <li>What actually happened (error message / screenshot).</li>
+      <li>Your browser and OS (Windows / Linux / mobile).</li>
+      <li>The date & time (local).</li>
+    </ul>
+  </div>
 
-    <p class="small-hint" style="margin-top:10px;">
-      Tip: next step is to let logged-in users propose translations + admin moderation.
-    </p>
+  <p class="small-hint" style="margin-top:10px;">
+    Tip: if you see a Flask/traceback error, copy the first line and the last few lines.
+  </p>
+</section>
+
+<section class="ned-card">
+  <h3>Feature request</h3>
+  <p class="small-hint">
+    NED is evolving. If you want a feature, describe the use-case (real scenario) and what outcome you need.
+  </p>
+
+  <div class="weather-note-item" style="padding: 10px;">
+    <p style="margin:0;"><strong>Examples:</strong></p>
+    <ul style="margin-top:8px;">
+      <li>“I want route suggestions for inland navigation segments.”</li>
+      <li>“I want an admin-only log of user actions.”</li>
+      <li>“I want emergency phrase packs per region/language.”</li>
+    </ul>
   </div>
 </section>
+
+<section class="ned-card">
+  <h3>Contact</h3>
+  <p class="small-hint">
+    Choose one of the options below. (In this MVP, contact details can be placeholders.)
+  </p>
+
+  <table class="voyage-table">
+    <thead>
+      <tr>
+        <th>Channel</th>
+        <th>Details</th>
+        <th>When to use</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Email</strong></td>
+        <td>
+          <code>support@ned.local</code><br>
+          <span class="small-hint">Replace with your real email later.</span>
+        </td>
+        <td>Bug reports, feedback, account issues</td>
+      </tr>
+      <tr>
+        <td><strong>Admin</strong></td>
+        <td>
+          If you are an admin, use <a href="{{ url_for('admin_panel') }}">Admin Panel</a>.
+        </td>
+        <td>Manage users, reset passwords, manage locations</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="small-hint" style="margin-top:8px;">
+    Response times may vary depending on project development phase.
+  </p>
+</section>
+
+<section class="ned-card">
+  <h3>Privacy note</h3>
+  <p class="small-hint">
+    NED stores data locally (JSON files) on the server hosting the application.
+    Avoid entering sensitive personal data in notes or messages.
+  </p>
+</section>
+
 {% endblock %}
