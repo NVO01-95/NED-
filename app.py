@@ -6,6 +6,7 @@ from collections import Counter
 from datetime import datetime
 from location_store import load_locations, add_location, delete_location, resolve_location
 from phrases_store import load_phrases_data, filter_phrases
+from ned.services.route_service import build_route_from_text
 
 
 
@@ -17,6 +18,22 @@ import re
 
 app = Flask(__name__)
 app.secret_key = "change-this-in-production"
+
+
+
+
+class LocalLocationsResolver:
+    def __init__(self, location_store):
+        self.location_store = location_store
+
+    def resolve(self, name: str):
+        # AICI doar înlocuim cu funcția ta reală din location_store.py
+        loc = self.location_store.find_location(name)  # <-- placeholder
+        if not loc:
+            return None
+
+        return float(loc["lat"]), float(loc["lon"])
+
 
 
 def haversine_nm(lat1, lon1, lat2, lon2):
@@ -144,7 +161,7 @@ def _validate_coord_range(val: float, coord_type: str):
 
 def parse_waypoints_mixed(waypoints_text: str):
     """
-    Acceptă:
+    Accepta:
       - linii cu "lat, lon"
       - sau nume de locații din locations.json
     Returnează listă de (lat, lon).
@@ -841,9 +858,16 @@ def route_planner():
             if speed_kn <= 0:
                 raise ValueError("Speed must be > 0 knots.")
 
-            # AICI: folosim mixed parser (coords + place names)
-            points = parse_waypoints_mixed(waypoints_text)
+            # AICI: folosim noul parser (coords + place names), mutat în Python service
+            locations_path = os.path.join(app.root_path, "data", "locations.json")
+            resolver = LocalLocationsResolver(locations_path)
 
+            build = build_route_from_text(waypoints_text, resolver)
+            if build.errors:
+                raise ValueError("; ".join(build.errors))
+
+            # păstrăm formatul vechi pentru restul codului (listă de tuple lat/lon)
+            points = [(w.lat, w.lon) for w in build.waypoints]
 
             segments = []
             total_nm = 0.0
@@ -1579,6 +1603,8 @@ def communication():
         selected_category=category,
         q=q
     )
+
+
 
 
 
