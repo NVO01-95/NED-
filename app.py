@@ -94,48 +94,61 @@ app = Flask(__name__)
 app.secret_key = "change-this-in-production"
 
 
+from difflib import get_close_matches
+
+
 class LocalLocationsResolver:
-    def __init__(self, location_store):
-        self.location_store = location_store
+    def __init__(self, locations_path: str):
+        self.locations_path = locations_path
+        self._locations = None
+
+    def _load_locations(self):
+        with open(self.locations_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        if isinstance(data, dict) and "locations" in data and isinstance(data["locations"], list):
+            return data["locations"]
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict):
+            out = []
+            for name, val in data.items():
+                if isinstance(val, dict) and "lat" in val and "lon" in val:
+                    out.append({"name": name, "lat": val["lat"], "lon": val["lon"]})
+            return out
+        return []
+
+    def _ensure_loaded(self):
+        if self._locations is None:
+            self._locations = self._load_locations()
 
     def resolve(self, name: str):
-        q = (name or "").strip()
+        self._ensure_loaded()
+        q = (name or "").strip().lower()
         if not q:
             return None
 
-        # aici folosești funcția ta reală:
-        loc = self.location_store.find_location(q)
-        if not loc:
-            return None
-
-        return float(loc["lat"]), float(loc["lon"])
-
+        for item in self._locations:
+            nm = str(item.get("name", "")).strip().lower()
+            if nm == q:
+                return float(item["lat"]), float(item["lon"])
+        return None
+    
     def suggest(self, q: str, limit: int = 3):
+        self._ensure_loaded()
         q = (q or "").strip().lower()
         if not q:
             return []
 
-        # ia toate locațiile din store (adaptează numele funcției dacă e altul)
-        # ideal: returnează listă de dict-uri cu cheie "name"
-        all_locs = self.location_store.get_all_locations()
+        names = [str(x.get("name", "")).strip() for x in self._locations if str(x.get("name", "")).strip()]
 
-        names = []
-        for item in all_locs:
-            nm = str(item.get("name", "")).strip()
-            if nm:
-                names.append(nm)
-
-        # contains match
-        contains = [n for n in names if q in n.lower()]
-        contains = contains[:limit]
+        contains = [n for n in names if q in n.lower()][:limit]
         if len(contains) >= limit:
             return contains
 
-        # fuzzy fallback
         rest = get_close_matches(q, names, n=limit - len(contains), cutoff=0.6)
         out = contains + [x for x in rest if x not in contains]
         return out[:limit]
-
 
 def haversine_nm(lat1, lon1, lat2, lon2):
     """

@@ -38,5 +38,10 @@
     "lat": 48.208174,
     "lon": 16.373819,
     "display": "Vienna, AU"
+  },
+  "brăila": {
+    "lat": 45.2665,
+    "lon": 27.9687,
+    "display": "Brăila, RO"
   }
 }

@@ -405,6 +405,46 @@
       "author": "John",
       "author_id": 2,
       "id": 10
+    },
+    {
+      "name": "local",
+      "departure": "braila",
+      "destination": "galati",
+      "waypoints_raw": "45.2719, 27.9575\r\n45.1986, 28.0599",
+      "notes": "",
+      "checklist": {
+        "fuel": false,
+        "weather": false,
+        "crew": false,
+        "documents": false,
+        "safety": false
+      },
+      "calc": {
+        "speed_kn": 15.0,
+        "total_nm": 6.17,
+        "total_eta_hours": 0.41,
+        "total_eta_hhmm": "00:25",
+        "segments": [
+          {
+            "from": {
+              "lat": 45.2719,
+              "lon": 27.9575
+            },
+            "to": {
+              "lat": 45.1986,
+              "lon": 28.0599
+            },
+            "distance_nm": 6.17,
+            "bearing_deg": 135.4,
+            "eta_hours": 0.41,
+            "eta_hhmm": "00:25"
+          }
+        ],
+        "warnings": []
+      },
+      "author": "admin",
+      "author_id": 1,
+      "id": 11
     }
   ],
   "log_entries": [
