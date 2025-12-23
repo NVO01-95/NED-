@@ -361,6 +361,48 @@
         ]
       },
       "author": "John",
+      "author_id": 2,
+      "id": 9
+    },
+    {
+      "name": "ceva nou cica",
+      "departure": "",
+      "destination": "",
+      "waypoints_raw": "45.10, 28.80\r\n46.00, 29.50",
+      "notes": "",
+      "checklist": {
+        "fuel": false,
+        "weather": false,
+        "crew": false,
+        "documents": false,
+        "safety": false
+      },
+      "calc": {
+        "speed_kn": 6.0,
+        "total_nm": 61.53,
+        "total_eta_hours": 10.26,
+        "total_eta_hhmm": "10:15",
+        "segments": [
+          {
+            "from": {
+              "lat": 45.1,
+              "lon": 28.8
+            },
+            "to": {
+              "lat": 46.0,
+              "lon": 29.5
+            },
+            "distance_nm": 61.53,
+            "bearing_deg": 28.3,
+            "eta_hours": 10.26,
+            "eta_hhmm": "10:15"
+          }
+        ],
+        "warnings": [
+          "Segment 1 is very long (61.5 NM). Check waypoint spacing."
+        ]
+      },
+      "author": "John",
       "author_id": 2
     }
   ],

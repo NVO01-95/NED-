@@ -7,6 +7,77 @@ from datetime import datetime
 from location_store import load_locations, add_location, delete_location, resolve_location
 from phrases_store import load_phrases_data, filter_phrases
 from ned.services.route_service import build_route_from_text
+from ned.services.route_calc_service import compute_route_calculation
+from dataclasses import dataclass
+from typing import Callable
+from ned.services.route_warnings_service import compute_route_warnings
+
+
+
+@dataclass(frozen=True)
+class Segment:
+    from_lat: float
+    from_lon: float
+    to_lat: float
+    to_lon: float
+    distance_nm: float
+    bearing_deg: float
+    eta_hours: float
+    eta_hhmm: str
+
+
+@dataclass(frozen=True)
+class CalcResult:
+    speed_kn: float
+    total_nm: float
+    total_eta_hours: float
+    total_eta_hhmm: str
+    segments: list[dict]
+
+
+def compute_route_calculation(
+    points: list[tuple[float, float]],
+    speed_kn: float,
+    haversine_nm: Callable[[float, float, float, float], float],
+    bearing_deg: Callable[[float, float, float, float], float],
+    hours_to_hhmm: Callable[[float], str],
+) -> CalcResult:
+    if speed_kn <= 0:
+        raise ValueError("Speed must be > 0 knots.")
+    if len(points) < 2:
+        raise ValueError("Add at least 2 waypoints to compute a route.")
+
+    segments_out: list[dict] = []
+    total_nm = 0.0
+    total_hours = 0.0
+
+    for i in range(len(points) - 1):
+        lat1, lon1 = points[i]
+        lat2, lon2 = points[i + 1]
+
+        dist_nm = float(haversine_nm(lat1, lon1, lat2, lon2))
+        brng = float(bearing_deg(lat1, lon1, lat2, lon2))
+        seg_hours = dist_nm / speed_kn
+
+        segments_out.append({
+            "from": {"lat": lat1, "lon": lon1},
+            "to": {"lat": lat2, "lon": lon2},
+            "distance_nm": round(dist_nm, 2),
+            "bearing_deg": round(brng, 1),
+            "eta_hours": round(seg_hours, 2),
+            "eta_hhmm": hours_to_hhmm(seg_hours),
+        })
+
+        total_nm += dist_nm
+        total_hours += seg_hours
+
+    return CalcResult(
+        speed_kn=speed_kn,
+        total_nm=round(total_nm, 2),
+        total_eta_hours=round(total_hours, 2),
+        total_eta_hhmm=hours_to_hhmm(total_hours),
+        segments=segments_out,
+    )
 
 
 
@@ -15,6 +86,7 @@ import csv
 import io
 import math
 import re
+import os
 
 app = Flask(__name__)
 app.secret_key = "change-this-in-production"
@@ -866,41 +938,31 @@ def route_planner():
             if build.errors:
                 raise ValueError("; ".join(build.errors))
 
-            # păstrăm formatul vechi pentru restul codului (listă de tuple lat/lon)
             points = [(w.lat, w.lon) for w in build.waypoints]
 
-            segments = []
-            total_nm = 0.0
-            total_hours = 0.0
+            route_warnings = compute_route_warnings(
+                points=points,
+                haversine_nm=haversine_nm,
+            )
 
-            for i in range(len(points) - 1):
-                lat1, lon1 = points[i]
-                lat2, lon2 = points[i + 1]
 
-                dist_nm = haversine_nm(lat1, lon1, lat2, lon2)
-                brng = bearing_deg(lat1, lon1, lat2, lon2)
-
-                seg_hours = dist_nm / speed_kn
-
-                segments.append({
-                    "from": {"lat": lat1, "lon": lon1},
-                    "to": {"lat": lat2, "lon": lon2},
-                    "distance_nm": round(dist_nm, 2),
-                    "bearing_deg": round(brng, 1),
-                    "eta_hours": round(seg_hours, 2),
-                    "eta_hhmm": hours_to_hhmm(seg_hours),
-                })
-
-                total_nm += dist_nm
-                total_hours += seg_hours
+            calc = compute_route_calculation(
+                points=points,
+                speed_kn=speed_kn,
+                haversine_nm=haversine_nm,
+                bearing_deg=bearing_deg,
+                hours_to_hhmm=hours_to_hhmm,
+            )
 
             calc_result = {
-                "speed_kn": speed_kn,
-                "total_nm": round(total_nm, 2),
-                "total_eta_hours": round(total_hours, 2),
-                "total_eta_hhmm": hours_to_hhmm(total_hours),
-                "segments": segments,
+                "speed_kn": calc.speed_kn,
+                "total_nm": calc.total_nm,
+                "total_eta_hours": calc.total_eta_hours,
+                "total_eta_hhmm": calc.total_eta_hhmm,
+                "segments": calc.segments,
+                "warnings": route_warnings,
             }
+
 
             new_route = {
                 "name": route_name or f"{route_departure} - {route_destination}".strip(" -"),
@@ -911,7 +973,7 @@ def route_planner():
                 "checklist": checklist,
                 "calc": calc_result,
                 "author": session.get("username") or "Unknown",
-                "author_id": session.get("user_id"),  # IMPORTANT pentru permisiuni
+                "author_id": session.get("user_id"),
             }
 
             routes.append(new_route)
@@ -922,13 +984,14 @@ def route_planner():
 
         except Exception as e:
             calc_error = str(e)
-
+    
     return render_template(
         "route_planner.html",
         routes=routes,
         calc_result=calc_result,
         calc_error=calc_error
     )
+
 
 
 
