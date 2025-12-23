@@ -11,6 +11,8 @@ from ned.services.route_calc_service import compute_route_calculation
 from dataclasses import dataclass
 from typing import Callable
 from ned.services.route_warnings_service import compute_route_warnings
+from ned.services.location_suggest_service import suggest_locations
+from difflib import get_close_matches
 
 
 
@@ -92,20 +94,47 @@ app = Flask(__name__)
 app.secret_key = "change-this-in-production"
 
 
-
-
 class LocalLocationsResolver:
     def __init__(self, location_store):
         self.location_store = location_store
 
     def resolve(self, name: str):
-        # AICI doar înlocuim cu funcția ta reală din location_store.py
-        loc = self.location_store.find_location(name)  # <-- placeholder
+        q = (name or "").strip()
+        if not q:
+            return None
+
+        # aici folosești funcția ta reală:
+        loc = self.location_store.find_location(q)
         if not loc:
             return None
 
         return float(loc["lat"]), float(loc["lon"])
 
+    def suggest(self, q: str, limit: int = 3):
+        q = (q or "").strip().lower()
+        if not q:
+            return []
+
+        # ia toate locațiile din store (adaptează numele funcției dacă e altul)
+        # ideal: returnează listă de dict-uri cu cheie "name"
+        all_locs = self.location_store.get_all_locations()
+
+        names = []
+        for item in all_locs:
+            nm = str(item.get("name", "")).strip()
+            if nm:
+                names.append(nm)
+
+        # contains match
+        contains = [n for n in names if q in n.lower()]
+        contains = contains[:limit]
+        if len(contains) >= limit:
+            return contains
+
+        # fuzzy fallback
+        rest = get_close_matches(q, names, n=limit - len(contains), cutoff=0.6)
+        out = contains + [x for x in rest if x not in contains]
+        return out[:limit]
 
 
 def haversine_nm(lat1, lon1, lat2, lon2):
@@ -927,6 +956,9 @@ def route_planner():
             if not speed_kn_str:
                 raise ValueError("Speed (kn) is required.")
             speed_kn = float(speed_kn_str)
+            locations_path = os.path.join(app.root_path, "data", "locations.json")
+            resolver = LocalLocationsResolver(locations_path)
+
             if speed_kn <= 0:
                 raise ValueError("Speed must be > 0 knots.")
 
@@ -1558,6 +1590,14 @@ def get_phrasebook():
 def help_page():
     phrases = get_phrasebook()
     return render_template("help.html", phrases=phrases)
+
+@app.route("/api/locations/suggest")
+def api_locations_suggest():
+    q = request.args.get("q", "").strip()
+    locations_path = os.path.join(app.root_path, "data", "locations.json")
+    results = suggest_locations(q, locations_path, limit=10)
+    return {"results": results}
+
 
 
 @app.route("/route/<int:route_id>/map")

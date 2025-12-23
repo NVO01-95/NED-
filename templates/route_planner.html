@@ -4,7 +4,7 @@
 {% block content %}
 <section class="ned-card">
   <h2>Route Planner</h2>
-  <p class="small-hint">Enter waypoints as coordinates. NED will calculate distance, bearing and ETA.</p>
+  <p class="small-hint">Enter waypoints as coordinates or location names. NED will calculate distance, bearing and ETA.</p>
 
   {% if calc_error %}
     <p style="color:#b00020; font-size:0.9rem;">{{ calc_error }}</p>
@@ -32,11 +32,35 @@
     </div>
 
     <div class="form-row">
-      <label for="waypoints">Waypoints (lat, lon)</label>
+      <label>Quick add location (local suggestions)</label>
+
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <input
+          id="locSearch"
+          type="text"
+          placeholder="Search location name..."
+          list="locSuggestions"
+          autocomplete="off"
+          style="flex:1; min-width:220px;"
+        >
+        <button type="button" id="addLocBtn" class="btn">Add</button>
+      </div>
+
+      <small class="small-hint">
+        Start typing a known location name (from your local locations.json), pick a suggestion, then press Add.
+      </small>
+
+      <datalist id="locSuggestions"></datalist>
+    </div>
+
+    <div class="form-row">
+      <label for="waypoints">Waypoints (lat, lon) OR location name</label>
       <textarea id="waypoints" name="waypoints" rows="6" placeholder="Example:
 45.17, 28.79
+Braila
 44.16, 28.64
-41.01, 28.97" required></textarea>
+Tulcea" required></textarea>
+
       <p class="small-hint">One point per line. Minimum 2 points. You can also separate with semicolons.</p>
     </div>
 
@@ -62,7 +86,7 @@
 
 {% if routes %}
 <section class="ned-card">
-  <h3>Saved routes</h3>                       
+  <h3>Saved routes</h3>
   <table class="voyage-table">
     <thead>
       <tr>
@@ -108,7 +132,6 @@
              </a>
            </div>
         </td>
-
       </tr>
 
       {% if r.calc and r.calc.segments %}
@@ -150,5 +173,64 @@
   </table>
 </section>
 {% endif %}
-{% endblock %}
 
+<script>
+(function () {
+  const locSearch = document.getElementById("locSearch");
+  const datalist = document.getElementById("locSuggestions");
+  const addBtn = document.getElementById("addLocBtn");
+  const waypoints = document.querySelector('textarea[name="waypoints"]');
+
+  if (!locSearch || !datalist || !addBtn || !waypoints) return;
+
+  let timer = null;
+
+  async function loadSuggestions(q) {
+    const resp = await fetch(`/api/locations/suggest?q=${encodeURIComponent(q)}`);
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    return (data.results || []).slice(0, 10);
+  }
+
+  function setDatalist(items) {
+    datalist.innerHTML = "";
+    items.forEach(name => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      datalist.appendChild(opt);
+    });
+  }
+
+  locSearch.addEventListener("input", () => {
+    clearTimeout(timer);
+    const q = locSearch.value.trim();
+    if (!q) {
+      setDatalist([]);
+      return;
+    }
+
+    timer = setTimeout(async () => {
+      const items = await loadSuggestions(q);
+      setDatalist(items);
+    }, 200);
+  });
+
+  addBtn.addEventListener("click", () => {
+    const name = locSearch.value.trim();
+    if (!name) return;
+    waypoints.value = (waypoints.value ? waypoints.value + "\n" : "") + name;
+    locSearch.value = "";
+    setDatalist([]);
+    waypoints.focus();
+  });
+
+  locSearch.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addBtn.click();
+    }
+  });
+})();
+</script>
+
+{% endblock %}
