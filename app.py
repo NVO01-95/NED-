@@ -1067,13 +1067,22 @@ def route_planner():
         except Exception as e:
             calc_error = str(e)
 
+    
+    uid = session.get("user_id")
+    current_user = next((u for u in data.get("users", []) if u.get("id") == uid), None)
+    is_admin = bool(current_user and current_user.get("is_admin", False))
+
+
+
     return render_template(
-        "route_planner.html",
-        routes=routes_view,
-        users=data.get("users", []),
-        calc_result=calc_result,
-        calc_error=calc_error,
-    )
+    "route_planner.html",
+    routes=routes_view,
+    users=data.get("users", []),
+    is_admin=is_admin,
+    calc_result=calc_result,
+    calc_error=calc_error,
+)
+
 
 @app.route("/route/geojson/<int:index>")
 def export_route_geojson(index):
