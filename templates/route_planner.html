@@ -122,14 +122,31 @@ Tulcea" required></textarea>
         </td>
         <td>
           <div class="route-actions">
-             <a class="nav-link" href="{{ url_for('export_route_csv', index=route_index) }}">
-               Export CSV
-             </a>
-             <a class="nav-link" href="{{ url_for('route_map', route_id=r.id) }}">Map</a>
-             <a class="nav-link" href="{{ url_for('route_chat', route_id=r.id) }}">Route chat</a>
-             <a class="nav-link" href="{{ url_for('export_route_geojson', index=route_index) }}">
-               GeoJSON
-             </a>
+                        <a class="nav-link" href="{{ url_for('export_route_csv', index=route_index) }}"> Export CSV </a>
+            <a class="nav-link" href="{{ url_for('route_map', route_id=r.id) }}">Map</a>
+            <a class="nav-link" href="{{ url_for('route_chat', route_id=r.id) }}">Route chat</a>
+            <a class="nav-link" href="{{ url_for('export_route_geojson', index=route_index) }}"> GeoJSON </a>
+
+            {# DELETE – doar admin sau owner #}
+            {% set is_owner = r.author_id == session.get("user_id") %}
+            {% set is_admin = false %}
+            {% for u in users if u.id == session.get("user_id") %}
+              {% if u.is_admin %}
+                {% set is_admin = true %}
+              {% endif %}
+            {% endfor %}
+
+            {% if is_admin or is_owner %}
+              <form method="post"
+                    action="{{ url_for('delete_route', route_id=r.id) }}"
+                    style="display:inline;"
+                    onsubmit="return confirm('Delete this route? This action cannot be undone.');">
+                <button type="submit" class="nav-link" style="color:#b00020;">
+                  Delete
+                </button>
+              </form>
+            {% endif %}
+
            </div>
         </td>
       </tr>

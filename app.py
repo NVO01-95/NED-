@@ -936,16 +936,51 @@ def update_checklist(index):
 @app.route("/route", methods=["GET", "POST"])
 def route_planner():
     data = load_data()
-
-    # ensure every saved route has an integer "id"
     data = ensure_route_ids(data)
-    routes = data.get("routes", [])
+    routes_all = data.get("routes", [])
 
     calc_result = None
     calc_error = None
 
+    # -----------------------------
+    # SORT + LIMIT (GET params)
+    # -----------------------------
+    sort_by = request.args.get("sort", "new")   # new | old | nm_desc | nm_asc
+    limit = request.args.get("limit", "10")     # 10 | 25 | 50 | all
+
+    def created_key(r):
+        return r.get("created_at", "")
+
+    # sortăm o copie pentru afișare
+    routes_view = list(routes_all)
+
+    if sort_by == "old":
+        routes_view = sorted(routes_view, key=created_key)
+    elif sort_by == "nm_desc":
+        routes_view = sorted(
+            routes_view,
+            key=lambda r: (r.get("calc") or {}).get("total_nm", 0),
+            reverse=True,
+        )
+    elif sort_by == "nm_asc":
+        routes_view = sorted(
+            routes_view,
+            key=lambda r: (r.get("calc") or {}).get("total_nm", 0),
+        )
+    else:
+        routes_view = sorted(routes_view, key=created_key, reverse=True)
+
+    if limit != "all":
+        try:
+            n = int(limit)
+            routes_view = routes_view[:n]
+        except Exception:
+            routes_view = routes_view[:10]
+
+    # -----------------------------
+    # POST: create new route
+    # -----------------------------
     if request.method == "POST":
-        # only logged-in users can save routes
         if not session.get("user_id"):
             return redirect(url_for("login"))
 
@@ -969,13 +1004,9 @@ def route_planner():
             if not speed_kn_str:
                 raise ValueError("Speed (kn) is required.")
             speed_kn = float(speed_kn_str)
-            locations_path = os.path.join(app.root_path, "data", "locations.json")
-            resolver = LocalLocationsResolver(locations_path)
-
             if speed_kn <= 0:
                 raise ValueError("Speed must be > 0 knots.")
 
-            # AICI: folosim noul parser (coords + place names), mutat în Python service
             locations_path = os.path.join(app.root_path, "data", "locations.json")
             resolver = LocalLocationsResolver(locations_path)
 
@@ -989,7 +1020,6 @@ def route_planner():
                 points=points,
                 haversine_nm=haversine_nm,
             )
-
 
             calc = compute_route_calculation(
                 points=points,
@@ -1008,8 +1038,14 @@ def route_planner():
                 "warnings": route_warnings,
             }
 
+            # next id (safe)
+            next_id = 1
+            if routes_all:
+                ids = [r.get("id", 0) for r in routes_all if isinstance(r.get("id", 0), int)]
+                next_id = max(ids) + 1 if ids else 1
 
             new_route = {
+                "id": next_id,
                 "name": route_name or f"{route_departure} - {route_destination}".strip(" -"),
                 "departure": route_departure,
                 "destination": route_destination,
@@ -1019,26 +1055,25 @@ def route_planner():
                 "calc": calc_result,
                 "author": session.get("username") or "Unknown",
                 "author_id": session.get("user_id"),
+                "created_at": datetime.utcnow().isoformat(),
             }
 
-            routes.append(new_route)
-            data["routes"] = routes
+            # salvăm în lista REALĂ, nu în lista filtrată pt afișare
+            data["routes"].append(new_route)
             save_data(data)
 
             return redirect(url_for("route_planner"))
 
         except Exception as e:
             calc_error = str(e)
-    
+
     return render_template(
         "route_planner.html",
-        routes=routes,
+        routes=routes_view,
+        users=data.get("users", []),
         calc_result=calc_result,
-        calc_error=calc_error
+        calc_error=calc_error,
     )
-
-
-
 
 @app.route("/route/geojson/<int:index>")
 def export_route_geojson(index):
@@ -1701,6 +1736,43 @@ def admin_delete_route_message(route_id, msg_id):
 
     flash("Message removed." if removed else "Message not found.", "success" if removed else "error")
     return redirect(url_for("route_chat", route_id=route_id))
+
+
+@app.route("/route/delete/<int:route_id>", methods=["POST"])
+def delete_route(route_id):
+    data = load_data()
+    data = ensure_route_ids(data)
+
+    uid = session.get("user_id")
+    if not uid:
+        return redirect(url_for("login"))
+
+    users = data.get("users", [])
+    routes = data.get("routes", [])
+
+    current_user = next((u for u in users if u.get("id") == uid), None)
+    if not current_user:
+        return redirect(url_for("login"))
+
+    route = next((r for r in routes if r.get("id") == route_id), None)
+    if not route:
+        flash("Route not found.", "error")
+        return redirect(url_for("route_planner"))
+
+    # PERMISIUNI — IDENTIC CA LOGICĂ
+    is_admin = current_user.get("is_admin", False)
+    is_owner = route.get("author_id") == uid
+
+    if not (is_admin or is_owner):
+        flash("You are not allowed to delete this route.", "error")
+        return redirect(url_for("route_planner"))
+
+    # ștergere rută
+    data["routes"] = [r for r in routes if r.get("id") != route_id]
+    save_data(data)
+
+    flash("Route deleted.", "success")
+    return redirect(url_for("route_planner"))
 
 @app.route("/communication")
 def communication():
