@@ -973,25 +973,50 @@ def delete_voyage(index):
         return redirect(url_for("voyage_sheet"))
 
     data = load_data()
+    users = data.get("users", [])
     voyages = data.get("voyages", [])
 
+    uid = session.get("user_id")
+    current_user = next((u for u in users if u.get("id") == uid), None)
+    is_admin = bool(current_user and current_user.get("is_admin", False))
+
     if 0 <= index < len(voyages):
+        v = voyages[index]
+        is_owner = (v.get("user_id") == uid) or (v.get("author_id") == uid)
+
+        if not (is_admin or is_owner):
+            flash("You are not allowed to delete this voyage.", "error")
+            return redirect(url_for("voyage_sheet"))
+
         voyages.pop(index)
         data["voyages"] = voyages
         save_data(data)
+        flash("Voyage deleted.", "success")
 
     return redirect(url_for("voyage_sheet"))
+
 
 @app.route("/voyage/checklist/<int:index>", methods=["POST"])
 def update_checklist(index):
     if not require_login():
         return redirect(url_for("voyage_sheet"))
 
-
     data = load_data()
+    users = data.get("users", [])
     voyages = data.get("voyages", [])
 
+    uid = session.get("user_id")
+    current_user = next((u for u in users if u.get("id") == uid), None)
+    is_admin = bool(current_user and current_user.get("is_admin", False))
+
     if 0 <= index < len(voyages):
+        v = voyages[index]
+        is_owner = (v.get("user_id") == uid) or (v.get("author_id") == uid)
+
+        if not (is_admin or is_owner):
+            flash("You are not allowed to update this checklist.", "error")
+            return redirect(url_for("voyage_sheet", view=index))
+
         checklist = {
             "fuel": "fuel" in request.form,
             "weather": "weather" in request.form,
@@ -1002,6 +1027,7 @@ def update_checklist(index):
         voyages[index]["checklist"] = checklist
         data["voyages"] = voyages
         save_data(data)
+        flash("Checklist updated.", "success")
 
     return redirect(url_for("voyage_sheet", view=index))
 

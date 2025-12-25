@@ -7,6 +7,7 @@
     <h2>Voyage Sheet</h2>
     <p>Fill in the basic details for your next voyage.</p>
 
+    {% if is_authenticated %}
     <form method="post" action="{{ url_for('voyage_sheet') }}" class="voyage-form">
         <!-- Hidden field used when editing an existing voyage -->
         <input type="hidden" name="voyage_index" value="{{ edit_index if editing else '' }}">
@@ -81,24 +82,22 @@
             {% if editing %}Update voyage{% else %}Save voyage{% endif %}
         </button>
     </form>
+    {% else %}
+        <p class="small-hint">
+            This feature is available for logged-in users.
+        </p>
+    {% endif %}
 </section>
 
 {% if voyages %}
 <section class="ned-card">
     <h3>Saved voyages</h3>
-        <p>
+    <p>
         Quick overview of all voyages stored so far.
         {% if voyage_count is not none %}
             (Total: {{ voyage_count }})
         {% endif %}
-        {% if current_user_id and user_voyage_count is not none %}
-            <br>
-            <span class="small-hint">
-                Voyages created while logged in as {{ current_username }}: {{ user_voyage_count }}.
-            </span>
-        {% endif %}
     </p>
-
 
     <table class="voyage-table">
         <thead>
@@ -112,21 +111,14 @@
         </thead>
         <tbody>
             {% for v in voyages %}
-                        <tr class="{% if current_user_id and v.user_id == current_user_id %}own-voyage{% endif %}">
+            {% set is_owner = (current_user and (v.user_id == current_user.id or v.author_id == current_user.id)) %}
+            <tr class="{% if is_owner %}own-voyage{% endif %}">
                 <td>{{ loop.index }}</td>
                 <td>
                     <strong>{{ v.departure }}</strong>
                     &rarr;
                     <strong>{{ v.destination }}</strong>
                 </td>
-            <tr class="{% if current_user_id and v.user_id == current_user_id %}own-voyage{% endif %}">
-                <td>{{ loop.index }}</td>
-                <td>
-                    <strong>{{ v.departure }}</strong>
-                    &rarr;
-                    <strong>{{ v.destination }}</strong>
-                </td>
-
                 <td>
                     <div class="voyage-time">
                         <span>ETD: {{ v.etd or "-" }}</span><br>
@@ -136,7 +128,7 @@
                 <td>{{ v.distance_nm or "-" }}</td>
                 <td>
                     <div class="voyage-actions">
-                        <!-- See notes -->
+                        <!-- See notes (read-only) -->
                         <form method="get" action="{{ url_for('voyage_sheet') }}">
                             <input type="hidden" name="view" value="{{ loop.index0 }}">
                             <button type="submit" class="btn btn-secondary btn-small">
@@ -144,6 +136,7 @@
                             </button>
                         </form>
 
+                        {% if is_authenticated and (is_admin or is_owner) %}
                         <!-- Edit -->
                         <form method="get" action="{{ url_for('voyage_sheet') }}">
                             <input type="hidden" name="edit" value="{{ loop.index0 }}">
@@ -153,11 +146,15 @@
                         </form>
 
                         <!-- Delete -->
-                        <form method="post" action="{{ url_for('delete_voyage', index=loop.index0) }}">
+                        <form method="post" action="{{ url_for('delete_voyage', index=loop.index0) }}"
+                              onsubmit="return confirm('Delete this voyage? This action cannot be undone.');">
                             <button type="submit" class="btn btn-danger btn-small">
                                 Delete
                             </button>
                         </form>
+                        {% else %}
+                            <span class="small-hint">Log in to manage.</span>
+                        {% endif %}
                     </div>
                 </td>
             </tr>
