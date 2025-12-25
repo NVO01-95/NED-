@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, make_response, flash
+from flask import Flask, render_template, request, redirect, url_for, session, make_response, flash, g
 from data_utils import load_data, save_data, ensure_route_ids   
 from chat_logic import add_route_message, delete_route_message, can_user_post, related_routes_for 
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -13,6 +13,7 @@ from typing import Callable
 from ned.services.route_warnings_service import compute_route_warnings
 from ned.services.location_suggest_service import suggest_locations
 from difflib import get_close_matches
+
 
 
 
@@ -168,6 +169,13 @@ def haversine_nm(lat1, lon1, lat2, lon2):
 
     km = R_km * c
     return km * km_to_nm
+
+def require_login():
+    if not session.get("user_id"):
+        flash("This feature is available for logged-in users.", "error")
+        return False
+    return True
+
 
 
 def bearing_deg(lat1, lon1, lat2, lon2):
@@ -474,6 +482,28 @@ def compute_contact_stats_for_port(official_contacts, personal_contacts, port_na
         "top_roles": role_counts,
     }
 
+@app.before_request
+def load_current_user_into_g():
+    g.current_user = None
+    uid = session.get("user_id")
+    if not uid:
+        return
+
+    try:
+        data = load_data()
+        users = data.get("users", [])
+        g.current_user = next((u for u in users if u.get("id") == uid), None)
+    except Exception:
+        g.current_user = None
+
+
+@app.context_processor
+def inject_auth_context():
+    return {
+        "current_user": g.get("current_user"),
+        "is_authenticated": bool(g.get("current_user")),
+        "is_admin": bool(g.get("current_user") and g.current_user.get("is_admin", False)),
+    }
 
 
 @app.context_processor
@@ -800,6 +830,9 @@ def voyage_sheet():
     edit_index = None
 
     if request.method == "POST":
+        if not require_login():
+            return redirect(url_for("voyage_sheet"))
+
         # create or update based on hidden voyage_index
         idx_str = request.form.get("voyage_index", "").strip()
 
@@ -936,6 +969,9 @@ def voyage_detail(voyage_id):
 
 @app.route("/voyage/delete/<int:index>", methods=["POST"])
 def delete_voyage(index):
+    if not require_login():
+        return redirect(url_for("voyage_sheet"))
+
     data = load_data()
     voyages = data.get("voyages", [])
 
@@ -948,6 +984,10 @@ def delete_voyage(index):
 
 @app.route("/voyage/checklist/<int:index>", methods=["POST"])
 def update_checklist(index):
+    if not require_login():
+        return redirect(url_for("voyage_sheet"))
+
+
     data = load_data()
     voyages = data.get("voyages", [])
 
@@ -1369,14 +1409,20 @@ def export_logbook():
 @app.route("/contacts", methods=["GET", "POST"])
 def contacts():
     data = load_data()
-    contacts = data.get("contacts", [])
+    contacts_list = data.get("contacts", [])
     personal_contacts_all = data.get("personal_contacts", [])
 
-    # port selectat din query string, ex: /contacts?port=Constanța
     selected_port = request.args.get("port", "").strip()
 
-    # dacă vine un POST, e formularul de personal contact
     if request.method == "POST":
+        # guest -> nu poate adăuga
+        if not require_login():
+            # portul poate veni din form
+            port_back = request.form.get("port", "").strip()
+            if port_back:
+                return redirect(url_for("contacts", port=port_back))
+            return redirect(url_for("contacts"))
+
         form_type = request.form.get("form_type", "")
         if form_type == "personal":
             port = request.form.get("port", "").strip()
@@ -1392,21 +1438,23 @@ def contacts():
                     "role": person_role,
                     "phone": person_phone,
                     "notes": person_notes,
+                    "user_id": session.get("user_id"),  # IMPORTANT pentru ownership
                 }
                 personal_contacts_all.append(new_personal)
                 data["personal_contacts"] = personal_contacts_all
                 save_data(data)
 
-            # după salvare, ne întoarcem la /contacts?port=<port>
             return redirect(url_for("contacts", port=port))
 
-    # lista de porturi unice pentru dropdown (din contacts + personal_contacts)
-    ports = sorted({c.get("port", "") for c in contacts} | {p.get("port", "") for p in personal_contacts_all})
-    ports = [p for p in ports if p]  # scoatem stringuri goale
+        # fallback
+        return redirect(url_for("contacts", port=selected_port) if selected_port else url_for("contacts"))
+
+    # GET
+    ports = sorted({c.get("port", "") for c in contacts_list} | {p.get("port", "") for p in personal_contacts_all})
+    ports = [p for p in ports if p]
 
     if selected_port:
-        # filtrare pentru portul selectat + atașăm indexul real din lista mare
-        official_filtered = [c for c in contacts if (c.get("port") or "").strip() == selected_port]
+        official_filtered = [c for c in contacts_list if (c.get("port") or "").strip() == selected_port]
 
         personal_filtered = []
         for idx, p in enumerate(personal_contacts_all):
@@ -1415,13 +1463,13 @@ def contacts():
                 p_with_index["idx"] = idx
                 personal_filtered.append(p_with_index)
 
-        port_stats = compute_contact_stats_for_port(contacts, personal_contacts_all, selected_port)
+        port_stats = compute_contact_stats_for_port(contacts_list, personal_contacts_all, selected_port)
     else:
         official_filtered = []
         personal_filtered = []
         port_stats = None
 
-    total_official = len(contacts)
+    total_official = len(contacts_list)
     total_personal = len(personal_contacts_all)
     total_ports = len(ports)
 
@@ -1437,17 +1485,38 @@ def contacts():
         total_ports=total_ports,
     )
 
+
 @app.route("/contacts/personal/delete/<int:index>", methods=["POST"])
 def delete_personal_contact(index):
+    if not require_login():
+        return redirect(url_for("contacts"))
+
     data = load_data()
+    users = data.get("users", [])
     personal_contacts_all = data.get("personal_contacts", [])
 
+    uid = session.get("user_id")
+    current_user = next((u for u in users if u.get("id") == uid), None)
+    is_admin = bool(current_user and current_user.get("is_admin", False))
+
     deleted_port = ""
+
     if 0 <= index < len(personal_contacts_all):
-        deleted_port = personal_contacts_all[index].get("port", "")
+        item = personal_contacts_all[index]
+        deleted_port = (item.get("port") or "").strip()
+
+        is_owner = (item.get("user_id") == uid)
+
+        if not (is_admin or is_owner):
+            flash("You are not allowed to delete this contact.", "error")
+            if deleted_port:
+                return redirect(url_for("contacts", port=deleted_port))
+            return redirect(url_for("contacts"))
+
         personal_contacts_all.pop(index)
         data["personal_contacts"] = personal_contacts_all
         save_data(data)
+        flash("Contact deleted.", "success")
 
     if deleted_port:
         return redirect(url_for("contacts", port=deleted_port))
@@ -1460,24 +1529,53 @@ def weather():
     notes = data.get("weather_notes", [])
 
     if request.method == "POST":
+        if not require_login():
+            return redirect(url_for("weather"))
+
         note = request.form.get("weather_note", "").strip()
         if note:
-            notes.append(note)
+            notes.append({
+                "text": note,
+                "user_id": session.get("user_id"),
+                "created_at": datetime.utcnow().isoformat(),
+            })
             data["weather_notes"] = notes
             save_data(data)
         return redirect(url_for("weather"))
 
     return render_template("weather.html", weather_notes=notes)
 
+
 @app.route("/weather/delete/<int:index>", methods=["POST"])
 def weather_delete(index):
+    if not require_login():
+        return redirect(url_for("weather"))
+
     data = load_data()
+    users = data.get("users", [])
     notes = data.get("weather_notes", [])
 
+    uid = session.get("user_id")
+    current_user = next((u for u in users if u.get("id") == uid), None)
+    is_admin = bool(current_user and current_user.get("is_admin", False))
+
     if 0 <= index < len(notes):
+        item = notes[index]
+
+        # suport 2 formate: dict nou sau string vechi
+        if isinstance(item, dict):
+            is_owner = (item.get("user_id") == uid)
+        else:
+            is_owner = True  # pentru formatul vechi nu ai ownership real
+
+        if not (is_admin or is_owner):
+            flash("You are not allowed to delete this note.", "error")
+            return redirect(url_for("weather"))
+
         notes.pop(index)
         data["weather_notes"] = notes
         save_data(data)
+        flash("Weather note deleted.", "success")
 
     return redirect(url_for("weather"))
 

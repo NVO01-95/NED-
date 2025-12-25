@@ -228,7 +228,9 @@
       "notes": "Cel mai tare manager, are camere dotate cu incarcatoare pentru uk inclusiv si roomservice fara taxe adaugate"
     }
   ],
-  "weather_notes": [],
+  "weather_notes": [
+    "O sa ploua puternic si sunt avertizari meteo in zona de sud est a romaniei deci aveti grija la iesirea de pe bratul sulina in marea neagra"
+  ],
   "users": [
     {
       "id": 1,

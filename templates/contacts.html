@@ -124,9 +124,11 @@
                         <td>{{ p.phone }}</td>
                         <td>{{ p.notes }}</td>
                         <td>
-                            <form method="post" action="{{ url_for('delete_personal_contact', index=p.idx) }}">
-                                <button type="submit" class="btn btn-danger btn-small">Delete</button>
-                            </form>
+                            {% if is_authenticated %}
+                                <form method="post" action="{{ url_for('delete_personal_contact', index=p.idx) }}">
+                                    <button type="submit" class="btn btn-danger btn-small">Delete</button>
+                                </form>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -139,33 +141,40 @@
         <hr style="margin: 14px 0; border: none; border-top: 1px solid #e0e6f0;">
 
         <h4>Add personal contact</h4>
-        <form method="post" action="{{ url_for('contacts', port=selected_port) }}" class="voyage-form">
-            <input type="hidden" name="form_type" value="personal">
 
-            <div class="form-row">
-                <label for="person_name">Name</label>
-                <input id="person_name" name="person_name" type="text" required placeholder="Contact name">
-            </div>
+        {% if is_authenticated %}
+            <form method="post" action="{{ url_for('contacts', port=selected_port) }}" class="voyage-form">
+                <input type="hidden" name="form_type" value="personal">
 
-            <div class="form-row">
-                <label for="person_role">Role</label>
-                <input id="person_role" name="person_role" type="text" placeholder="Agent, pilot, friend...">
-            </div>
+                <div class="form-row">
+                    <label for="person_name">Name</label>
+                    <input id="person_name" name="person_name" type="text" required placeholder="Contact name">
+                </div>
 
-            <div class="form-row">
-                <label for="person_phone">Phone</label>
-                <input id="person_phone" name="person_phone" type="text" placeholder="+40...">
-            </div>
+                <div class="form-row">
+                    <label for="person_role">Role</label>
+                    <input id="person_role" name="person_role" type="text" placeholder="Agent, pilot, friend...">
+                </div>
 
-            <div class="form-row">
-                <label for="person_notes">Notes</label>
-                <textarea id="person_notes" name="person_notes" rows="2" placeholder="How you met, when, why they are useful..."></textarea>
-            </div>
+                <div class="form-row">
+                    <label for="person_phone">Phone</label>
+                    <input id="person_phone" name="person_phone" type="text" placeholder="+40...">
+                </div>
 
-            <input type="hidden" name="port" value="{{ selected_port }}">
+                <div class="form-row">
+                    <label for="person_notes">Notes</label>
+                    <textarea id="person_notes" name="person_notes" rows="2" placeholder="How you met, when, why they are useful..."></textarea>
+                </div>
 
-            <button type="submit" class="btn btn-small">Save personal contact</button>
-        </form>
+                <input type="hidden" name="port" value="{{ selected_port }}">
+
+                <button type="submit" class="btn btn-small">Save personal contact</button>
+            </form>
+        {% else %}
+            <p class="small-hint">
+                This feature is available for logged-in users.
+            </p>
+        {% endif %}
     </article>
 </section>
 {% endif %}

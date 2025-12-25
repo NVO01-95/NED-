@@ -168,13 +168,6 @@
       "position": "Mm 37.5 Port Tulcea Aval",
       "category": "Other",
       "notes": "Restaurant Marcu livreaza si la bordul navelor prin intermediul Corsarelor Delta Trans"
-    },
-    {
-      "date": "2025-12-02",
-      "time": "16:45",
-      "position": "Port Constanta",
-      "category": "Traffic",
-      "notes": "Perioada de asteptare decenta"
     }
   ],
   "contacts": [
@@ -228,7 +221,9 @@
       "notes": "Cel mai tare manager, are camere dotate cu incarcatoare pentru uk inclusiv si roomservice fara taxe adaugate"
     }
   ],
-  "weather_notes": [],
+  "weather_notes": [
+    "O sa ploua puternic si sunt avertizari meteo in zona de sud est a romaniei deci aveti grija la iesirea de pe bratul sulina in marea neagra"
+  ],
   "users": [
     {
       "id": 1,

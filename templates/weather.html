@@ -27,30 +27,52 @@
 
 <section class="ned-card">
     <h3>Add Weather Note</h3>
-    <p style="font-size: 0.9rem;">Useful for logging dangerous conditions, drift, strong currents, storms, or anything relevant for seamanship.</p>
+    <p style="font-size: 0.9rem;">
+        Useful for logging dangerous conditions, drift, strong currents, storms, or anything relevant for seamanship.
+    </p>
 
-    <form method="post" action="{{ url_for('weather') }}" class="voyage-form">
-        <div class="form-row">
-            <label for="weather_note">Weather note</label>
-            <textarea id="weather_note" name="weather_note" rows="3" placeholder="Example: Strong NE wind near Sulina. Heavy swell from the east. Visibility reduced to 1 mile."></textarea>
-        </div>
-        <button type="submit" class="btn">Save note</button>
-    </form>
+    {% if is_authenticated %}
+        <form method="post" action="{{ url_for('weather') }}" class="voyage-form">
+            <div class="form-row">
+                <label for="weather_note">Weather note</label>
+                <textarea
+                    id="weather_note"
+                    name="weather_note"
+                    rows="3"
+                    placeholder="Example: Strong NE wind near Sulina. Heavy swell from the east. Visibility reduced to 1 mile."
+                ></textarea>
+            </div>
+            <button type="submit" class="btn">Save note</button>
+        </form>
+    {% else %}
+        <p class="small-hint" style="margin-top:10px;">
+            This feature is available for logged-in users.
+        </p>
+    {% endif %}
 </section>
 
 {% if weather_notes %}
 <section class="ned-card">
     <h3>Saved Weather Notes</h3>
-    <p style="font-size: 0.9rem;">These notes may help you understand patterns and navigate safer in the future.</p>
+    <p style="font-size: 0.9rem;">
+        These notes may help you understand patterns and navigate safer in the future.
+    </p>
 
     <ul class="weather-notes-list">
         {% for note in weather_notes %}
         <li>
             <div class="weather-note-item">
-                <span>{{ note }}</span>
-                <form method="post" action="{{ url_for('weather_delete', index=loop.index0) }}" style="display:inline;">
-                    <button class="btn btn-secondary btn-small" type="submit">Delete</button>
-                </form>
+                <span>{{ note.text if note is mapping else note }}</span>
+
+                {% if is_authenticated %}
+                    <form method="post"
+                          action="{{ url_for('weather_delete', index=loop.index0) }}"
+                          style="display:inline;">
+                        <button class="btn btn-secondary btn-small" type="submit">
+                            Delete
+                        </button>
+                    </form>
+                {% endif %}
             </div>
         </li>
         {% endfor %}
