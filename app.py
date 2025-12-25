@@ -899,6 +899,39 @@ def voyage_sheet():
         form_voyage=form_voyage
     )
 
+@app.route("/voyage/<int:voyage_id>", methods=["GET", "POST"])
+def voyage_detail(voyage_id):
+    data = load_data()
+    voyages = data.get("voyages", [])
+
+    voyage = next((v for v in voyages if v.get("id") == voyage_id), None)
+    if not voyage:
+        flash("Voyage not found.", "error")
+        return redirect(url_for("voyage_sheet"))
+
+    # (opțional) permisiuni: doar owner sau admin
+    uid = session.get("user_id")
+    users = data.get("users", [])
+    current_user = next((u for u in users if u.get("id") == uid), None)
+    is_admin = bool(current_user and current_user.get("is_admin", False))
+    is_owner = (voyage.get("author_id") == uid) or (voyage.get("user_id") == uid)
+
+    if request.method == "POST":
+        if not uid:
+            return redirect(url_for("login"))
+        if not (is_admin or is_owner):
+            flash("You are not allowed to edit this voyage.", "error")
+            return redirect(url_for("voyage_detail", voyage_id=voyage_id))
+
+        voyage["notes"] = request.form.get("notes", "").strip()
+        voyage["tags"] = [t.strip() for t in request.form.get("tags", "").split(",") if t.strip()]
+
+        data["voyages"] = voyages
+        save_data(data)
+        flash("Voyage saved.", "success")
+        return redirect(url_for("voyage_detail", voyage_id=voyage_id))
+
+    return render_template("voyage_detail.html", voyage=voyage, is_admin=is_admin, is_owner=is_owner)
 
 
 @app.route("/voyage/delete/<int:index>", methods=["POST"])
@@ -1842,9 +1875,51 @@ def mark_route_done(route_id):
 
     route["status"] = "done"
     route["done_at"] = datetime.utcnow().isoformat()
+    
+    voyages = data.get("voyages", [])
+
+    already = next((v for v in voyages if v.get("source_route_id") == route_id), None)
+    if not already:
+        next_vid = 1
+        if voyages:
+            vids = [v.get("id", 0) for v in voyages if isinstance(v.get("id", 0), int)]
+            next_vid = max(vids) + 1 if vids else 1
+
+        voyage = {
+            "id": next_vid,
+            "source_route_id": route_id,
+            "title": route.get("name") or f"{route.get('departure','')} - {route.get('destination','')}".strip(" -"),
+            "departure": route.get("departure", ""),
+            "destination": route.get("destination", ""),
+            "author": route.get("author", ""),
+            "author_id": route.get("author_id"),
+            "user_id": route.get("author_id"),  # compat cu voyage_sheet-ul tău
+            "created_at": datetime.utcnow().isoformat(),
+            "done_at": route.get("done_at"),
+            "notes": "",
+            "tags": [],
+            "route_snapshot": route,
+            "checklist": route.get("checklist", {}),
+            "etd": "",
+            "eta": route.get("calc", {}).get("total_eta_hhmm", ""),
+            "distance_nm": str(route.get("calc", {}).get("total_nm", "")),
+        }
+
+        voyages.append(voyage)
+        data["voyages"] = voyages
+        created_id = next_vid
+    else:
+        created_id = already.get("id")
+
     save_data(data)
 
     flash("Route marked as DONE.", "success")
+    
+    # du userul direct la voyage (cel creat)
+    voyages = data.get("voyages", [])
+    created = next((v for v in voyages if v.get("source_route_id") == route_id), None)
+    if created:
+        return redirect(url_for("voyage_detail", voyage_id=created["id"]))
     return redirect(url_for("route_planner"))
 
 

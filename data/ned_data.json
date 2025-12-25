@@ -41,6 +41,76 @@
       "notes": "Comunicate a lot with Bosfor Authorities",
       "checklist": {},
       "user_id": null
+    },
+    {
+      "id": 1,
+      "source_route_id": 1,
+      "title": "Aventura",
+      "departure": "Tulcea",
+      "destination": "Varna",
+      "author": "John",
+      "author_id": 2,
+      "user_id": 2,
+      "created_at": "2025-12-25T14:31:39.335269",
+      "done_at": "2025-12-25T14:31:39.335269",
+      "notes": "On Sf Gheorghe branch only romanian or russian is used so be aware of the communication feature of this site",
+      "tags": [],
+      "route_snapshot": {
+        "id": 1,
+        "name": "Aventura",
+        "departure": "Tulcea",
+        "destination": "Varna",
+        "waypoints_raw": "Tulcea\r\nVarna",
+        "notes": "Atentie la comunicarea cu port control Tulcea respectiv Galati. Anuntati trecferea",
+        "checklist": {
+          "fuel": true,
+          "weather": true,
+          "crew": true,
+          "documents": true,
+          "safety": true
+        },
+        "calc": {
+          "speed_kn": 12.0,
+          "total_nm": 124.28,
+          "total_eta_hours": 10.36,
+          "total_eta_hhmm": "10:21",
+          "segments": [
+            {
+              "from": {
+                "lat": 45.177518,
+                "lon": 28.8016348
+              },
+              "to": {
+                "lat": 43.20725,
+                "lon": 27.9167
+              },
+              "distance_nm": 124.28,
+              "bearing_deg": 198.2,
+              "eta_hours": 10.36,
+              "eta_hhmm": "10:21"
+            }
+          ],
+          "warnings": [
+            "Segment 1 is very long (124.3 NM). Check waypoint spacing.",
+            "Segment 1 may indicate a navigation jump."
+          ]
+        },
+        "author": "John",
+        "author_id": 2,
+        "created_at": "2025-12-25T11:46:50.247148",
+        "status": "done",
+        "done_at": "2025-12-25T14:31:39.335269"
+      },
+      "checklist": {
+        "fuel": true,
+        "weather": true,
+        "crew": true,
+        "documents": true,
+        "safety": true
+      },
+      "etd": "",
+      "eta": "10:21",
+      "distance_nm": "124.28"
     }
   ],
   "routes": [
@@ -88,7 +158,7 @@
       "author_id": 2,
       "created_at": "2025-12-25T11:46:50.247148",
       "status": "done",
-      "done_at": "2025-12-25T11:47:30.759687"
+      "done_at": "2025-12-25T14:31:39.335269"
     }
   ],
   "log_entries": [
