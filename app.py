@@ -1043,6 +1043,15 @@ def route_planner():
             if routes_all:
                 ids = [r.get("id", 0) for r in routes_all if isinstance(r.get("id", 0), int)]
                 next_id = max(ids) + 1 if ids else 1
+            
+            status_filter = request.args.get("status", "planned")  # planned | done | all
+
+            if status_filter == "planned":
+                routes_all = [r for r in routes_all if r.get("status", "planned") != "done"]
+            elif status_filter == "done":
+                routes_all = [r for r in routes_all if r.get("status") == "done"]
+            # all -> nu filtrăm
+
 
             new_route = {
                 "id": next_id,
@@ -1056,6 +1065,8 @@ def route_planner():
                 "author": session.get("username") or "Unknown",
                 "author_id": session.get("user_id"),
                 "created_at": datetime.utcnow().isoformat(),
+                "status": "planned",
+                "done_at": None,
             }
 
             # salvăm în lista REALĂ, nu în lista filtrată pt afișare
@@ -1802,6 +1813,39 @@ def communication():
     )
 
 
+@app.route("/route/done/<int:route_id>", methods=["POST"])
+def mark_route_done(route_id):
+    uid = session.get("user_id")
+    if not uid:
+        return redirect(url_for("login"))
+
+    data = load_data()
+    data = ensure_route_ids(data)
+
+    users = data.get("users", [])
+    routes = data.get("routes", [])
+
+    current_user = next((u for u in users if u.get("id") == uid), None)
+    if not current_user:
+        return redirect(url_for("login"))
+
+    route = next((r for r in routes if r.get("id") == route_id), None)
+    if not route:
+        flash("Route not found.", "error")
+        return redirect(url_for("route_planner"))
+
+    is_admin = bool(current_user.get("is_admin", False))
+    is_owner = (route.get("author_id") == uid)
+    if not (is_admin or is_owner):
+        flash("You are not allowed to modify this route.", "error")
+        return redirect(url_for("route_planner"))
+
+    route["status"] = "done"
+    route["done_at"] = datetime.utcnow().isoformat()
+    save_data(data)
+
+    flash("Route marked as DONE.", "success")
+    return redirect(url_for("route_planner"))
 
 
 

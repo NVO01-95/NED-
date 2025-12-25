@@ -87,6 +87,15 @@ Tulcea" required></textarea>
 {% if routes %}
 <section class="ned-card">
   <h3>Saved routes</h3>
+  <label style="margin:0;">
+  Status
+  <select name="status">
+    <option value="planned" {{ 'selected' if request.args.get('status','planned')=='planned' else '' }}>Planned</option>
+    <option value="done" {{ 'selected' if request.args.get('status')=='done' else '' }}>Done</option>
+    <option value="all" {{ 'selected' if request.args.get('status')=='all' else '' }}>All</option>
+  </select>
+</label>
+
     <form method="get" action="{{ url_for('route_planner') }}" class="voyage-form" style="margin: 10px 0 14px 0;">
     <div class="form-row" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
       <label style="margin:0;">
@@ -152,6 +161,8 @@ Tulcea" required></textarea>
             <a class="nav-link" href="{{ url_for('route_map', route_id=r.id) }}">Map</a>
             <a class="nav-link" href="{{ url_for('route_chat', route_id=r.id) }}">Route chat</a>
             <a class="nav-link" href="{{ url_for('export_route_geojson', index=route_index) }}"> GeoJSON </a>
+            <button type="button" class="nav-link" onclick="toggleSeg('{{ r.id }}')">Segments</button>
+
 
           {# DELETE – doar admin sau owner #}
           {% set is_owner = r.author_id == session.get("user_id") %}
@@ -167,14 +178,25 @@ Tulcea" required></textarea>
             </form>
           {% endif %}
 
+          {% if is_admin or is_owner %}
+            <form method="post"
+                  action="{{ url_for('mark_route_done', route_id=r.id) }}"
+                  style="display:inline;"
+                  onsubmit="return confirm('Mark this route as DONE?');">
+              <button type="submit" class="nav-link" style="color:#0b5;">
+                Done
+              </button>
+            </form>
+          {% endif %}
+
 
            </div>
         </td>
       </tr>
 
       {% if r.calc and r.calc.segments %}
-      <tr>
-        <td colspan="6">
+        <tr id="seg-{{ r.id }}" style="display:none;">
+          <td colspan="6">
           <div class="notes-section">
             <strong>Segments</strong>
             <table class="voyage-table" style="margin-top:8px;">
@@ -270,5 +292,14 @@ Tulcea" required></textarea>
   });
 })();
 </script>
+
+<script>
+function toggleSeg(id) {
+  const row = document.getElementById("seg-" + id);
+  if (!row) return;
+  row.style.display = (row.style.display === "none" || row.style.display === "") ? "table-row" : "none";
+}
+</script>
+
 
 {% endblock %}

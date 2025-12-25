@@ -45,43 +45,50 @@
   ],
   "routes": [
     {
-      "name": "",
-      "departure": "",
-      "destination": "",
-      "waypoints_raw": "Varna \r\nTulcea",
-      "notes": "",
+      "id": 1,
+      "name": "Aventura",
+      "departure": "Tulcea",
+      "destination": "Varna",
+      "waypoints_raw": "Tulcea\r\nVarna",
+      "notes": "Atentie la comunicarea cu port control Tulcea respectiv Galati. Anuntati trecferea",
       "checklist": {
-        "fuel": false,
-        "weather": false,
-        "crew": false,
-        "documents": false,
-        "safety": false
+        "fuel": true,
+        "weather": true,
+        "crew": true,
+        "documents": true,
+        "safety": true
       },
       "calc": {
-        "speed_kn": 10.0,
+        "speed_kn": 12.0,
         "total_nm": 124.28,
-        "total_eta_hours": 12.43,
-        "total_eta_hhmm": "12:26",
+        "total_eta_hours": 10.36,
+        "total_eta_hhmm": "10:21",
         "segments": [
           {
             "from": {
-              "lat": 43.20725,
-              "lon": 27.9167
-            },
-            "to": {
               "lat": 45.177518,
               "lon": 28.8016348
             },
+            "to": {
+              "lat": 43.20725,
+              "lon": 27.9167
+            },
             "distance_nm": 124.28,
-            "bearing_deg": 17.5,
-            "eta_hours": 12.43,
-            "eta_hhmm": "12:26"
+            "bearing_deg": 198.2,
+            "eta_hours": 10.36,
+            "eta_hhmm": "10:21"
           }
+        ],
+        "warnings": [
+          "Segment 1 is very long (124.3 NM). Check waypoint spacing.",
+          "Segment 1 may indicate a navigation jump."
         ]
       },
       "author": "John",
       "author_id": 2,
-      "id": 6
+      "created_at": "2025-12-25T11:46:50.247148",
+      "status": "done",
+      "done_at": "2025-12-25T11:47:16.616869"
     }
   ],
   "log_entries": [
