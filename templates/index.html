@@ -3,143 +3,176 @@
 {% block title %}NED · Dashboard{% endblock %}
 
 {% block content %}
-<section class="ned-card home-hero">
-    <h2>Welcome to NED</h2>
-    <p>
-        Nautical Essential Dashboard is a local tool for planning voyages,
-        keeping a logbook, managing routes and contacts, and writing down weather-related notes.
+
+{# ---------------- HERO (NEW) ---------------- #}
+<section class="ned-hero">
+  <div class="ned-hero-text">
+    <h1>NED – Nautical Essential Dashboard</h1>
+    <p class="hero-subtitle">
+      Practical planning & logging for inland navigation — built for the Danube, ports and small vessels.
     </p>
 
+    <ul class="hero-points">
+      <li>✔ Plan routes and voyages with confidence</li>
+      <li>✔ Avoid common beginner mistakes (checklists, notes, local tips)</li>
+      <li>✔ Keep routes, contacts, weather notes and logbook in one place</li>
+    </ul>
+
+    <div class="hero-actions">
+      <a href="{{ url_for('route_planner') }}" class="btn">Start Route Planning</a>
+      <a href="{{ url_for('voyage_sheet') }}" class="btn btn-secondary">Open Voyage Sheet</a>
+    </div>
+
     {% if current_username %}
-        <p class="home-hero-status">
-            Logged in as <strong>{{ current_username }}</strong>. New voyages, routes and logbook entries
-            are linked to this account.
-        </p>
+      <p class="home-hero-status">
+        Logged in as <strong>{{ current_username }}</strong>. Your routes, voyages and logbook entries are linked to this account.
+      </p>
     {% else %}
-        <p class="home-hero-status">
-            You are browsing as a guest. You can explore all sections from the top navigation bar.
-            Creating an account will let you keep your own personal data later.
-        </p>
+      <p class="home-hero-status">
+        You are browsing as a guest. You can explore all sections, but saving/editing is available for logged-in users.
+      </p>
     {% endif %}
+  </div>
+
+  <div class="ned-hero-images">
+    <div class="hero-img-wrap">
+      <img src="{{ url_for('static', filename='img/danube_map.jpg') }}" alt="Danube navigation map">
+      <div class="hero-img-caption">Danube context • ports • river navigation</div>
+    </div>
+    <div class="hero-img-wrap">
+      <img src="{{ url_for('static', filename='img/small_boat.jpg') }}" alt="Small inland navigation boat">
+      <div class="hero-img-caption">Small vessels • practical planning • safe habits</div>
+    </div>
+  </div>
+</section>
+
+{# ---------------- ORIGINAL INTRO (kept, but smaller) ---------------- #}
+<section class="ned-card home-hero">
+  <h2>Welcome to NED</h2>
+  <p>
+    Nautical Essential Dashboard is a local tool for planning voyages,
+    keeping a logbook, managing routes and contacts, and writing down weather-related notes.
+  </p>
 </section>
 
 {% if summary %}
 <section class="home-stats">
-    <div class="home-stat-card">
-        <div class="home-stat-label">Voyages</div>
-        <div class="home-stat-value">{{ summary.voyages }}</div>
-    </div>
-    <div class="home-stat-card">
-        <div class="home-stat-label">Routes</div>
-        <div class="home-stat-value">{{ summary.routes }}</div>
-    </div>
-    <div class="home-stat-card">
-        <div class="home-stat-label">Logbook entries</div>
-        <div class="home-stat-value">{{ summary.log_entries }}</div>
-    </div>
-    <div class="home-stat-card">
-        <div class="home-stat-label">Contacts</div>
-        <div class="home-stat-value">{{ summary.contacts }}</div>
-    </div>
-    <div class="home-stat-card">
-        <div class="home-stat-label">Weather notes</div>
-        <div class="home-stat-value">{{ summary.weather_notes }}</div>
-    </div>
+  <div class="home-stat-card">
+    <div class="home-stat-label">Voyages</div>
+    <div class="home-stat-value">{{ summary.voyages }}</div>
+  </div>
+  <div class="home-stat-card">
+    <div class="home-stat-label">Routes</div>
+    <div class="home-stat-value">{{ summary.routes }}</div>
+  </div>
+  <div class="home-stat-card">
+    <div class="home-stat-label">Logbook entries</div>
+    <div class="home-stat-value">{{ summary.log_entries }}</div>
+  </div>
+  <div class="home-stat-card">
+    <div class="home-stat-label">Contacts</div>
+    <div class="home-stat-value">{{ summary.contacts }}</div>
+  </div>
+  <div class="home-stat-card">
+    <div class="home-stat-label">Weather notes</div>
+    <div class="home-stat-value">{{ summary.weather_notes }}</div>
+  </div>
 </section>
 {% endif %}
 
 <section class="home-grid">
-    <article class="home-card ned-card">
-        <h3>Voyage Sheet</h3>
-        <p>
-            Plan the key information for a voyage: departure, destination, ETD/ETA,
-            estimated distance and practical notes from mariners.
-        </p>
-        <a href="{{ url_for('voyage_sheet') }}" class="btn btn-small">Open Voyage Sheet</a>
-    </article>
+  <article class="home-card ned-card">
+    <h3>Voyage Sheet</h3>
+    <p>
+      Plan the key information for a voyage: departure, destination, ETD/ETA,
+      estimated distance and practical notes from mariners.
+    </p>
+    <a href="{{ url_for('voyage_sheet') }}" class="btn btn-small">Open Voyage Sheet</a>
+  </article>
 
-    <article class="home-card ned-card">
-        <h3>Route Planner</h3>
-        <p>
-            Store predefined routes with waypoints and a simple checklist before departure.
-            Useful when you repeat similar passages or want to keep “template routes”.
-        </p>
-        <a href="{{ url_for('route_planner') }}" class="btn btn-small">Open Route Planner</a>
-    </article>
+  <article class="home-card ned-card">
+    <h3>Route Planner</h3>
+    <p>
+      Store predefined routes with waypoints and a simple checklist before departure.
+      Useful when you repeat similar passages or want to keep “template routes”.
+    </p>
+    <a href="{{ url_for('route_planner') }}" class="btn btn-small">Open Route Planner</a>
+  </article>
 
-    <article class="home-card ned-card">
-        <h3>Logbook</h3>
-        <p>
-            Record navigation events, weather and technical notes by date and time.
-            Later you can export everything to CSV for reports or archives.
-        </p>
-        <a href="{{ url_for('logbook') }}" class="btn btn-small">Open Logbook</a>
-    </article>
+  <article class="home-card ned-card">
+    <h3>Logbook</h3>
+    <p>
+      Record navigation events, weather and technical notes by date and time.
+      Later you can export everything to CSV for reports or archives.
+    </p>
+    <a href="{{ url_for('logbook') }}" class="btn btn-small">Open Logbook</a>
+  </article>
 
-    <article class="home-card ned-card">
-        <h3>Contacts Hub</h3>
-        <p>
-            Keep official contacts for each port and your personal network
-            of agents, pilots, local friends or other mariners.
-        </p>
-        <a href="{{ url_for('contacts') }}" class="btn btn-small">Open Contacts</a>
-    </article>
+  <article class="home-card ned-card">
+    <h3>Contacts Hub</h3>
+    <p>
+      Keep official contacts for each port and your personal network
+      of agents, pilots, local friends or other mariners.
+    </p>
+    <a href="{{ url_for('contacts') }}" class="btn btn-small">Open Contacts</a>
+  </article>
 
-    <article class="home-card ned-card">
-        <h3>Weather Center</h3>
-        <p>
-            Quick links to external weather services plus a simple log of important situations
-            you want to remember for future voyages.
-        </p>
-        <a href="{{ url_for('weather') }}" class="btn btn-small">Open Weather Center</a>
-    </article>
+  <article class="home-card ned-card">
+    <h3>Weather Center</h3>
+    <p>
+      Quick links to external weather services plus a simple log of important situations
+      you want to remember for future voyages.
+    </p>
+    <a href="{{ url_for('weather') }}" class="btn btn-small">Open Weather Center</a>
+  </article>
 
-    <article class="home-card ned-card">
-        <h3>Settings &amp; Data</h3>
-        <p>
-            See a summary of stored data, export/import your JSON file and reset user data
-            while keeping official contacts.
-        </p>
-        <a href="{{ url_for('settings') }}" class="btn btn-small">Open Settings</a>
-    </article>
+  <article class="home-card ned-card">
+    <h3>Settings &amp; Data</h3>
+    <p>
+      See a summary of stored data, export/import your JSON file and reset user data
+      while keeping official contacts.
+    </p>
+    <a href="{{ url_for('settings') }}" class="btn btn-small">Open Settings</a>
+  </article>
 </section>
 
 {% if voyage_stats and voyage_stats.total_distance_nm > 0 %}
 <section class="ned-card">
-    <h3>Voyage analytics</h3>
+  <h3>Voyage analytics</h3>
 
+  <p>
+    Total logged distance:
+    <strong>{{ voyage_stats.total_distance_nm }} NM</strong>
+  </p>
+
+  {% if voyage_stats.longest_voyage %}
     <p>
-        Total logged distance:
-        <strong>{{ voyage_stats.total_distance_nm }} NM</strong>
+      Longest voyage:
+      <strong>{{ voyage_stats.longest_voyage.departure }}</strong>
+      &rarr;
+      <strong>{{ voyage_stats.longest_voyage.destination }}</strong>
+      ({{ voyage_stats.longest_voyage.distance_nm }} NM)
     </p>
+  {% endif %}
 
-    {% if voyage_stats.longest_voyage %}
-        <p>
-            Longest voyage:
-            <strong>{{ voyage_stats.longest_voyage.departure }}</strong>
-            &rarr;
-            <strong>{{ voyage_stats.longest_voyage.destination }}</strong>
-            ({{ voyage_stats.longest_voyage.distance_nm }} NM)
-        </p>
-    {% endif %}
+  {% if voyage_stats.top_departures %}
+    <p>
+      Most common departure ports:
+      {% for port, count in voyage_stats.top_departures %}
+        <span>{{ port }} ({{ count }}){% if not loop.last %}, {% endif %}</span>
+      {% endfor %}
+    </p>
+  {% endif %}
 
-    {% if voyage_stats.top_departures %}
-        <p>
-            Most common departure ports:
-            {% for port, count in voyage_stats.top_departures %}
-                <span>{{ port }} ({{ count }}){% if not loop.last %}, {% endif %}</span>
-            {% endfor %}
-        </p>
-    {% endif %}
-
-    {% if voyage_stats.top_destinations %}
-        <p>
-            Most common destinations:
-            {% for port, count in voyage_stats.top_destinations %}
-                <span>{{ port }} ({{ count }}){% if not loop.last %}, {% endif %}</span>
-            {% endfor %}
-        </p>
-    {% endif %}
+  {% if voyage_stats.top_destinations %}
+    <p>
+      Most common destinations:
+      {% for port, count in voyage_stats.top_destinations %}
+        <span>{{ port }} ({{ count }}){% if not loop.last %}, {% endif %}</span>
+      {% endfor %}
+    </p>
+  {% endif %}
 </section>
 {% endif %}
+
 {% endblock %}
