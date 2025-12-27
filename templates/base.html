@@ -6,42 +6,49 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <header class="ned-header">
-        <div class="ned-header-left">
-            <h1>NED – Nautical Essential Dashboard</h1>
-            <p class="ned-tagline">For personal nautical planning &amp; logging</p>
-        </div>
 
-        <div class="ned-header-right">
-            {% if current_username %}
-                <span class="user-label">
-                    Logged in as {{ current_username }}
+    <!-- Top bar (WebWave-like) -->
+    <header class="top-nav">
+        <div class="top-nav-inner">
+
+            <a class="brand" href="{{ url_for('home') }}">
+                <span class="brand-mark">N</span>
+                <span class="brand-text">
+                    <span class="title">NED</span>
+                    <span class="sub">Nautical Essential Dashboard</span>
                 </span>
-                <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
-            {% else %}
-                <a href="{{ url_for('login') }}" class="nav-link">Login</a>
-                <a href="{{ url_for('register') }}" class="nav-link">Register</a>
-            {% endif %}
+            </a>
+
+            <nav class="nav-links">
+                <a href="{{ url_for('home') }}">Home</a>
+                <a href="{{ url_for('voyage_sheet') }}">Voyage Sheet</a>
+                <a href="{{ url_for('route_planner') }}">Route Planner</a>
+                <a href="{{ url_for('logbook') }}">Logbook</a>
+                <a href="{{ url_for('contacts') }}">Contacts</a>
+                <a href="{{ url_for('weather') }}">Weather</a>
+
+                {% if current_username %}
+                    <a href="{{ url_for('settings') }}">Settings</a>
+                {% endif %}
+
+                <a href="{{ url_for('communication') }}">Communication</a>
+                <a href="{{ url_for('help_page') }}">Help</a>
+            </nav>
+
+            <div class="nav-actions">
+                {% if current_username %}
+                    <span class="user-chip">Hi, {{ current_username }}</span>
+                    <a href="{{ url_for('logout') }}" class="btn-nav">Logout</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="btn-nav">Login</a>
+                    <a href="{{ url_for('register') }}" class="btn-nav primary">Register</a>
+                {% endif %}
+            </div>
+
         </div>
     </header>
 
-    <nav class="ned-nav">
-        <a href="{{ url_for('home') }}">Home</a>
-        <a href="{{ url_for('voyage_sheet') }}">Voyage Sheet</a>
-        <a href="{{ url_for('route_planner') }}">Route Planner</a>
-        <a href="{{ url_for('logbook') }}">Logbook</a>
-        <a href="{{ url_for('contacts') }}">Contacts</a>
-        <a href="{{ url_for('weather') }}">Weather</a>
-        <a href="{{ url_for('settings') }}">Settings</a>
-        <a href="{{ url_for('communication') }}">Communication</a>
-        <a href="{{ url_for('help_page') }}">Help</a>
-        <!-- <a href="{{ url_for('route_planner') }}">Chat</a> -->
-
-
-    </nav>
-
     <main class="ned-main">
-
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 <div class="flash-wrap">
@@ -56,10 +63,10 @@
     </main>
 
     <footer class="ned-footer">
-    <small>
-        © 2025 NED – Nautical Essential Dashboard · Made by NVO
-    </small>
-</footer>
+        <small>
+            © 2025 NED – Nautical Essential Dashboard · Made by NVO
+        </small>
+    </footer>
 
 </body>
 </html>

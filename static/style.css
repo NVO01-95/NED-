@@ -553,3 +553,163 @@ a:hover {
   }
 }
 
+/* ---------- TOP NAV (WebWave-like) ---------- */
+.top-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: #fff;
+  border-bottom: 1px solid #e7edf6;
+}
+
+.top-nav-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: #0f172a;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: #0b2a4a;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 900;
+  font-size: 14px;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+}
+.brand-text .title { font-size: 16px; }
+.brand-text .sub { font-size: 12px; color: #64748b; font-weight: 700; }
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 16px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: #0f172a;
+  font-weight: 650;
+  font-size: 14px;
+  padding: 8px 10px;
+  border-radius: 12px;
+}
+
+.nav-links a:hover {
+  background: #f1f5f9;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-chip{
+  font-size: 13px;
+  font-weight: 700;
+  color:#0f172a;
+  background:#f1f5f9;
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid #e7edf6;
+}
+
+.btn-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 12px;
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 14px;
+  border: 1px solid #d9e3f1;
+  color: #0f172a;
+  background: #fff;
+}
+
+.btn-nav.primary {
+  background: #0b2a4a;
+  color: #fff;
+  border-color: #0b2a4a;
+}
+
+.btn-nav:hover { filter: brightness(0.98); }
+
+/* Mobile: păstrăm doar brand + butoane (simplu, fără JS) */
+@media (max-width: 900px) {
+  .nav-links { display: none; }
+}
+
+/* Optional: să nu fie lipit content-ul de navbar */
+.ned-main{
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 18px 16px;
+}
+
+/* ----- PAGE BACKGROUND (subtle) ----- */
+body{
+  background: #f7f9fc;
+}
+
+/* make cards pop a bit */
+.ned-card{
+  background: #fff;
+  border: 1px solid #e7edf6;
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+
+/* Home hero spacing */
+.ned-hero{
+  padding: 22px;
+  border-radius: 16px;
+}
+
+/* Make hero title more landing-like */
+.ned-hero-text h1{
+  font-size: 2.2rem;
+  line-height: 1.1;
+}
+
+/* Make small buttons look consistent */
+.btn.btn-secondary{
+  border: 1px solid #d9e3f1;
+  background: #fff;
+}
+
+/* Home grid cards hover */
+.home-grid .home-card{
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.home-grid .home-card:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
