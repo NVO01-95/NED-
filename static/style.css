@@ -713,3 +713,44 @@ body{
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
 }
 
+/* --- Modern background (subtle, artistic) --- */
+body{
+  background: radial-gradient(1200px 600px at 20% 10%, rgba(11,42,74,0.10), transparent 60%),
+              radial-gradient(900px 500px at 80% 20%, rgba(59,130,246,0.10), transparent 60%),
+              radial-gradient(900px 500px at 50% 90%, rgba(16,185,129,0.08), transparent 60%),
+              #f7f9fc;
+}
+
+/* make tiles feel clickable */
+.modern-tiles{
+  margin-top: 18px;
+}
+
+.tile{
+  display:block;
+  text-decoration:none;
+  color: inherit;
+  padding: 18px;
+  position: relative;
+}
+
+.tile:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.10);
+}
+
+.tile-badge{
+  display:inline-block;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(11,42,74,0.10);
+  color: #0b2a4a;
+  border: 1px solid rgba(11,42,74,0.15);
+  margin-bottom: 10px;
+}
+
+.tile h3{ margin: 6px 0 8px 0; }
+.tile p{ margin: 0; color:#475569; line-height: 1.4; }
+

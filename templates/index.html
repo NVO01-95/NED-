@@ -73,61 +73,46 @@
 </section>
 {% endif %}
 
-<section class="home-grid">
-  <article class="home-card ned-card">
-    <h3>Voyage Sheet</h3>
-    <p>
-      Plan the key information for a voyage: departure, destination, ETD/ETA,
-      estimated distance and practical notes from mariners.
-    </p>
-    <a href="{{ url_for('voyage_sheet') }}" class="btn btn-small">Open Voyage Sheet</a>
-  </article>
-
-  <article class="home-card ned-card">
+<section class="home-grid modern-tiles">
+  <a class="tile ned-card" href="{{ url_for('route_planner') }}">
+    <div class="tile-badge">Route</div>
     <h3>Route Planner</h3>
-    <p>
-      Store predefined routes with waypoints and a simple checklist before departure.
-      Useful when you repeat similar passages or want to keep “template routes”.
-    </p>
-    <a href="{{ url_for('route_planner') }}" class="btn btn-small">Open Route Planner</a>
-  </article>
+    <p>Build routes from coordinates or local places. Export, map & chat per route.</p>
+  </a>
 
-  <article class="home-card ned-card">
+  <a class="tile ned-card" href="{{ url_for('voyage_sheet') }}">
+    <div class="tile-badge">Voyage</div>
+    <h3>Voyage Sheet</h3>
+    <p>Prepare departure/arrival details, ETD/ETA, distance and practical notes.</p>
+  </a>
+
+  <a class="tile ned-card" href="{{ url_for('logbook') }}">
+    <div class="tile-badge">Log</div>
     <h3>Logbook</h3>
-    <p>
-      Record navigation events, weather and technical notes by date and time.
-      Later you can export everything to CSV for reports or archives.
-    </p>
-    <a href="{{ url_for('logbook') }}" class="btn btn-small">Open Logbook</a>
-  </article>
+    <p>Record navigation events, weather and technical notes by date and time.</p>
+  </a>
 
-  <article class="home-card ned-card">
+  <a class="tile ned-card" href="{{ url_for('contacts') }}">
+    <div class="tile-badge">Ports</div>
     <h3>Contacts Hub</h3>
-    <p>
-      Keep official contacts for each port and your personal network
-      of agents, pilots, local friends or other mariners.
-    </p>
-    <a href="{{ url_for('contacts') }}" class="btn btn-small">Open Contacts</a>
-  </article>
+    <p>Official port contacts + your personal network (agents, pilots, local tips).</p>
+  </a>
 
-  <article class="home-card ned-card">
+  <a class="tile ned-card" href="{{ url_for('weather') }}">
+    <div class="tile-badge">Wx</div>
     <h3>Weather Center</h3>
-    <p>
-      Quick links to external weather services plus a simple log of important situations
-      you want to remember for future voyages.
-    </p>
-    <a href="{{ url_for('weather') }}" class="btn btn-small">Open Weather Center</a>
-  </article>
+    <p>Quick links to sources + your own observations and situational notes.</p>
+  </a>
 
-  <article class="home-card ned-card">
-    <h3>Settings &amp; Data</h3>
-    <p>
-      See a summary of stored data, export/import your JSON file and reset user data
-      while keeping official contacts.
-    </p>
-    <a href="{{ url_for('settings') }}" class="btn btn-small">Open Settings</a>
-  </article>
+  {% if current_username %}
+  <a class="tile ned-card" href="{{ url_for('settings') }}">
+    <div class="tile-badge">Data</div>
+    <h3>Settings & Data</h3>
+    <p>Export/import your local JSON and manage stored data safely.</p>
+  </a>
+  {% endif %}
 </section>
+
 
 {% if voyage_stats and voyage_stats.total_distance_nm > 0 %}
 <section class="ned-card">
