@@ -565,11 +565,29 @@ a:hover {
 .top-nav-inner {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 12px 16px;
+  padding: 14px 22px;
   display: flex;
   align-items: center;
   gap: 14px;
+  justify-content: flex-start; 
 }
+
+.nav-spacer{
+  flex: 1;
+}
+
+/* opțional: buton meniu mai “premium” */
+.menu-btn{
+  border: 1px solid #e7edf6;
+  background: #fff;
+  border-radius: 12px;
+  padding: 8px 10px;
+  cursor: pointer;
+  font-weight: 800;
+  line-height: 1;
+}
+.menu-btn:hover{ background:#f1f5f9; }
+
 
 .brand {
   display: flex;
@@ -627,6 +645,10 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+.btn-nav{
+  padding: 9px 16px; 
+  border-radius: 14px;
 }
 
 .user-chip{
@@ -754,3 +776,94 @@ body{
 .tile h3{ margin: 6px 0 8px 0; }
 .tile p{ margin: 0; color:#475569; line-height: 1.4; }
 
+/* --- Menu button in top bar --- */
+.menu-btn{
+  margin-left: 14px;
+  border: 1px solid #d9e3f1;
+  background: #fff;
+  color: #0f172a;
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.menu-btn:hover{ background:#f1f5f9; }
+
+/* --- Drawer --- */
+.menu-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 80;
+}
+.menu-overlay.open{
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.menu-drawer{
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 320px;
+  max-width: 85vw;
+  background: #ffffff;
+  border-right: 1px solid #e7edf6;
+  transform: translateX(-102%);
+  transition: transform 0.18s ease;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.18);
+}
+.menu-drawer.open{
+  transform: translateX(0);
+}
+
+.menu-drawer-head{
+  padding: 14px 14px;
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e7edf6;
+}
+.menu-drawer-title{
+  font-weight: 900;
+  color:#0f172a;
+}
+.menu-close{
+  border: 1px solid #d9e3f1;
+  background:#fff;
+  border-radius: 12px;
+  padding: 6px 10px;
+  cursor:pointer;
+}
+.menu-close:hover{ background:#f1f5f9; }
+
+.menu-drawer-links{
+  padding: 10px 10px;
+  display:flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.menu-drawer-links a{
+  text-decoration:none;
+  color:#0f172a;
+  font-weight: 750;
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+.menu-drawer-links a:hover{
+  background:#f1f5f9;
+}
+
+.menu-drawer-foot{
+  margin-top: auto;
+  padding: 12px 14px;
+  border-top: 1px solid #e7edf6;
+  color:#64748b;
+}
