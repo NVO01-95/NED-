@@ -1,155 +1,197 @@
 {% extends "base.html" %}
-
 {% block title %}Admin · NED{% endblock %}
 
 {% block content %}
-<section class="ned-card">
-    <h2>Admin control panel</h2>
-    <p class="small-hint">
-        This area is only visible to admin accounts. You can manage users, reset passwords
-        and moderate voyage notes. Data is stored locally in <code>ned_data.json</code>.
-    </p>
-
-    {% if admin_message %}
-        <p style="color: #0c6b2c; font-size: 0.9rem; margin-top: 8px;">
-            {{ admin_message }}
-        </p>
-    {% endif %}
-    {% if admin_error %}
-        <p style="color: #b00020; font-size: 0.9rem; margin-top: 8px;">
-            {{ admin_error }}
-        </p>
-    {% endif %}
-</section>
 
 <section class="ned-card">
-    <h3>Admin tools</h3>
-    <p class="small-hint">
-        Quick links to admin-only utilities.
-    </p>
-
-    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
-        <a class="nav-link" href="{{ url_for('admin_locations') }}">Manage Locations</a>
-       
-        
-        
+  <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+    <div>
+      <h2 style="margin-bottom:6px;">Admin Control Panel</h2>
+      <p class="small-hint" style="max-width:70ch;">
+        Admin-only area. Manage critical data: locations, users, passwords and moderation.
+        All data is stored locally in <code>ned_data.json</code>.
+      </p>
     </div>
 
-    <p class="small-hint" style="margin-top: 8px;">
-        Locations are used when users type place names in Route Planner waypoints (instead of coordinates).
-    </p>
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <a class="btn btn-small" href="{{ url_for('admin_locations') }}">Manage Locations</a>
+      <a class="btn btn-small btn-secondary" href="{{ url_for('settings') }}">Settings & Data</a>
+    </div>
+  </div>
+
+  {% if admin_message %}
+    <div class="flash flash-success" style="margin-top:12px;">{{ admin_message }}</div>
+  {% endif %}
+  {% if admin_error %}
+    <div class="flash flash-error" style="margin-top:12px;">{{ admin_error }}</div>
+  {% endif %}
 </section>
 
-<section class="ned-card">
-    <h3>Global data overview</h3>
-    <ul>
-        <li><strong>Users:</strong> {{ summary.users }}</li>
-        <li><strong>Voyages:</strong> {{ summary.voyages }}</li>
-        <li><strong>Routes:</strong> {{ summary.routes }}</li>
-        <li><strong>Logbook entries:</strong> {{ summary.log_entries }}</li>
-        <li><strong>Official contacts:</strong> {{ summary.contacts }}</li>
-        <li><strong>Personal contacts:</strong> {{ summary.personal_contacts }}</li>
-        <li><strong>Weather notes:</strong> {{ summary.weather_notes }}</li>
-    </ul>
+{% if summary %}
+<section class="home-stats" style="margin-top:14px;">
+  <div class="home-stat-card">
+    <div class="home-stat-label">Users</div>
+    <div class="home-stat-value">{{ summary.users }}</div>
+  </div>
+  <div class="home-stat-card">
+    <div class="home-stat-label">Voyages</div>
+    <div class="home-stat-value">{{ summary.voyages }}</div>
+  </div>
+  <div class="home-stat-card">
+    <div class="home-stat-label">Routes</div>
+    <div class="home-stat-value">{{ summary.routes }}</div>
+  </div>
+  <div class="home-stat-card">
+    <div class="home-stat-label">Logbook</div>
+    <div class="home-stat-value">{{ summary.log_entries }}</div>
+  </div>
+  <div class="home-stat-card">
+    <div class="home-stat-label">Contacts</div>
+    <div class="home-stat-value">{{ summary.contacts }}</div>
+  </div>
+  <div class="home-stat-card">
+    <div class="home-stat-label">Personal</div>
+    <div class="home-stat-value">{{ summary.personal_contacts }}</div>
+  </div>
+  <div class="home-stat-card">
+    <div class="home-stat-label">Weather notes</div>
+    <div class="home-stat-value">{{ summary.weather_notes }}</div>
+  </div>
+</section>
+{% endif %}
 
-    <p class="small-hint" style="margin-top: 8px;">
-        For JSON export/import and full reset, use the <a href="{{ url_for('settings') }}">Settings</a> page.
-    </p>
+<section class="ned-card" style="margin-top:14px;">
+  <h3 style="margin-bottom:6px;">Admin Tools</h3>
+  <p class="small-hint">
+    Locations are used when users type place names in Route Planner (instead of coordinates).
+  </p>
+
+  <div class="home-grid" style="margin-top:10px;">
+    <article class="home-card ned-card" style="padding:16px;">
+      <h3 style="margin-top:0;">Locations</h3>
+      <p class="small-hint">Add / update / delete ports & points from your local database.</p>
+      <a href="{{ url_for('admin_locations') }}" class="btn btn-small">Open Locations</a>
+    </article>
+
+    <article class="home-card ned-card" style="padding:16px;">
+      <h3 style="margin-top:0;">Settings & Data</h3>
+      <p class="small-hint">Export/import JSON and reset data when needed.</p>
+      <a href="{{ url_for('settings') }}" class="btn btn-small">Open Settings</a>
+    </article>
+  </div>
 </section>
 
-<section class="ned-card">
-    <h3>Reset user password</h3>
-    <form method="post" action="{{ url_for('admin_reset_password') }}" class="voyage-form">
+<section style="display:grid; grid-template-columns: 1.1fr 0.9fr; gap:14px; margin-top:14px;">
+  <!-- LEFT COLUMN -->
+  <div style="display:flex; flex-direction:column; gap:14px;">
+
+    <section class="ned-card">
+      <h3 style="margin-bottom:6px;">Reset user password</h3>
+      <p class="small-hint">Use only when a user cannot access the account.</p>
+
+      <form method="post" action="{{ url_for('admin_reset_password') }}" class="voyage-form" style="margin-top:10px;">
         <div class="form-row">
-            <label for="user_id">User</label>
-            <select id="user_id" name="user_id" required>
-                <option value="">-- choose user --</option>
-                {% for u in users %}
-                    <option value="{{ u.id }}">
-                        #{{ u.id }} · {{ u.username }}{% if u.is_admin %} (admin){% endif %}
-                    </option>
-                {% endfor %}
-            </select>
+          <label for="user_id">User</label>
+          <select id="user_id" name="user_id" required>
+            <option value="">-- choose user --</option>
+            {% for u in users %}
+              <option value="{{ u.id }}">#{{ u.id }} · {{ u.username }}{% if u.is_admin %} (admin){% endif %}</option>
+            {% endfor %}
+          </select>
         </div>
 
         <div class="form-row">
-            <label for="new_password">New password</label>
-            <input
-                id="new_password"
-                name="new_password"
-                type="password"
-                placeholder="At least 4 characters"
-                required
-            >
+          <label for="new_password">New password</label>
+          <input id="new_password" name="new_password" type="password" placeholder="At least 4 characters" required>
         </div>
 
         <button type="submit" class="btn btn-small">Set new password</button>
-    </form>
-</section>
+      </form>
+    </section>
 
-<section class="ned-card">
-    <h3>Users</h3>
-    {% if users %}
-        <table class="voyage-table">
+    <section class="ned-card">
+      <h3 style="margin-bottom:6px;">Users</h3>
+      <p class="small-hint">
+        Read-only list for now. Later we can add: promote to admin, block posting, delete user.
+      </p>
+
+      {% if users %}
+        <div style="overflow:auto; margin-top:10px;">
+          <table class="voyage-table">
             <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Username</th>
-                    <th>Admin</th>
-                    <th>Can post</th>
-                </tr>
+              <tr>
+                <th>#</th>
+                <th>Username</th>
+                <th>Admin</th>
+                <th>Can post</th>
+              </tr>
             </thead>
             <tbody>
-                {% for u in users %}
-                <tr>
-                    <td>{{ u.id }}</td>
-                    <td>{{ u.username }}</td>
-                    <td>{{ 'Yes' if u.is_admin else 'No' }}</td>
-                    <td>{{ 'Yes' if u.can_post else 'No' }}</td>
-                </tr>
-                {% endfor %}
+              {% for u in users %}
+              <tr>
+                <td>{{ u.id }}</td>
+                <td>
+                  <strong>{{ u.username }}</strong>
+                  {% if u.is_admin %}
+                    <span class="small-hint" style="margin-left:6px;">(admin)</span>
+                  {% endif %}
+                </td>
+                <td>{{ 'Yes' if u.is_admin else 'No' }}</td>
+                <td>{{ 'Yes' if u.can_post else 'No' }}</td>
+              </tr>
+              {% endfor %}
             </tbody>
-        </table>
-        <p class="small-hint">
-            We can later add buttons here for blocking posting, deleting users, or promoting to admin.
-        </p>
-    {% else %}
-        <p>No users found.</p>
-    {% endif %}
-</section>
+          </table>
+        </div>
+      {% else %}
+        <p class="small-hint" style="margin-top:10px;">No users found.</p>
+      {% endif %}
+    </section>
 
-<section class="ned-card">
-    <h3>Voyage notes moderation</h3>
-    {% if voyages %}
-        <table class="voyage-table">
+  </div>
+
+  <!-- RIGHT COLUMN -->
+  <div style="display:flex; flex-direction:column; gap:14px;">
+
+    <section class="ned-card">
+      <h3 style="margin-bottom:6px;">Voyage notes moderation</h3>
+      <p class="small-hint">
+        Quick overview of voyage notes. Later we can add buttons: clear notes, delete voyage, flag.
+      </p>
+
+      {% if voyages %}
+        <div style="overflow:auto; margin-top:10px;">
+          <table class="voyage-table">
             <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Route</th>
-                    <th>Notes (preview)</th>
-                </tr>
+              <tr>
+                <th>#</th>
+                <th>Route</th>
+                <th>Notes (preview)</th>
+              </tr>
             </thead>
             <tbody>
-                {% for v in voyages %}
-                <tr>
-                    <td>{{ loop.index0 }}</td>
-                    <td>{{ v.departure }} &rarr; {{ v.destination }}</td>
-                    <td>
-                        {% if v.notes %}
-                            {{ v.notes[:80] }}{% if v.notes|length > 80 %}...{% endif %}
-                        {% else %}
-                            <span class="small-hint">No notes.</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
+              {% for v in voyages %}
+              <tr>
+                <td>{{ loop.index0 }}</td>
+                <td><strong>{{ v.departure }}</strong> → <strong>{{ v.destination }}</strong></td>
+                <td>
+                  {% if v.notes %}
+                    {{ v.notes[:120] }}{% if v.notes|length > 120 %}...{% endif %}
+                  {% else %}
+                    <span class="small-hint">No notes.</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
             </tbody>
-        </table>
-        <p class="small-hint">
-            We already have the logic to clear notes or delete voyages; we can add buttons here later.
-        </p>
-    {% else %}
-        <p>No voyages stored yet.</p>
-    {% endif %}
+          </table>
+        </div>
+      {% else %}
+        <p class="small-hint" style="margin-top:10px;">No voyages stored yet.</p>
+      {% endif %}
+    </section>
+
+  </div>
 </section>
+
 {% endblock %}

@@ -867,3 +867,7 @@ body{
   border-top: 1px solid #e7edf6;
   color:#64748b;
 }
+
+
+.flash-success{ background:#ecfdf3; border:1px solid #bbf7d0; color:#14532d; padding:10px 12px; border-radius:12px; }
+.flash-error{ background:#fff1f2; border:1px solid #fecdd3; color:#7f1d1d; padding:10px 12px; border-radius:12px; }
