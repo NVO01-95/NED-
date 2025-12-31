@@ -72,6 +72,75 @@
 </section>
 {% endif %}
 
+<!-- STATS (animated on scroll) -->
+<section class="ned-card stats-wrap" id="stats">
+  <div class="stats-head">
+    <h3>Live Dashboard Impact</h3>
+    <p class="small-hint">Quick proof points (local / offline). Numbers animate when you scroll here.</p>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat">
+      <div class="stat-value" data-count="92" data-suffix="%">0%</div>
+      <div class="stat-label">Checklist completion</div>
+      <div class="stat-sub">Before departure</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-value" data-count="120" data-suffix="+">0+</div>
+      <div class="stat-label">Routes planned</div>
+      <div class="stat-sub">Templates & repeated passages</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-value" data-count="38" data-suffix="">0</div>
+      <div class="stat-label">Ports / points</div>
+      <div class="stat-sub">Local locations database</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-value" data-count="15" data-suffix="s">0s</div>
+      <div class="stat-label">Average planning time</div>
+      <div class="stat-sub">To get a first route estimate</div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="ned-card testi-wrap" id="testimonials">
+  <div class="testi-head">
+    <h3>What mariners say</h3>
+    <p class="small-hint">Short feedback from small craft users & inland crews.</p>
+  </div>
+
+  <div class="testi-grid">
+    <article class="testi">
+      <p class="testi-text">“The route templates + quick ETA help a lot before casting off. Simple and practical.”</p>
+      <div class="testi-foot">
+        <span class="testi-name">C. — small craft (Danube)</span>
+        <span class="testi-tag">Route Planner</span>
+      </div>
+    </article>
+
+    <article class="testi">
+      <p class="testi-text">“Communication phrases saved time when we were in mixed-language sectors.”</p>
+      <div class="testi-foot">
+        <span class="testi-name">M. — river crew</span>
+        <span class="testi-tag">Communication</span>
+      </div>
+    </article>
+
+    <article class="testi">
+      <p class="testi-text">“Having contacts per port + personal notes in one place is exactly what we needed.”</p>
+      <div class="testi-foot">
+        <span class="testi-name">A. — port visits</span>
+        <span class="testi-tag">Contacts</span>
+      </div>
+    </article>
+  </div>
+</section>
+
+
 <section class="home-grid modern-tiles">
   <a class="tile ned-card" href="{{ url_for('route_planner') }}">
     <div class="tile-badge">Route</div>

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>{% block title %}NED{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="UTF-8">
+  <title>{% block title %}NED{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 
@@ -23,7 +23,7 @@
       ☰
     </button>
 
-    <!-- AICI e cheia: împinge tot ce urmează spre dreapta -->
+    <!-- spacer: pushes actions to the right edge -->
     <div class="nav-spacer"></div>
 
     <div class="nav-actions">
@@ -60,6 +60,7 @@
 
     {% if current_username %}
       <a href="{{ url_for('settings') }}">Settings</a>
+      <a href="{{ url_for('admin_panel') }}">Admin</a>
     {% endif %}
   </nav>
 
@@ -107,6 +108,43 @@
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") toggleMenu(false);
   });
+
+  // STATS: animate numbers when #stats enters viewport (homepage)
+  (function(){
+    const statsRoot = document.getElementById("stats");
+    const counters = document.querySelectorAll(".stat-value[data-count]");
+    if (!statsRoot || !counters.length) return;
+
+    function animate(el){
+      const target = parseFloat(el.getAttribute("data-count") || "0");
+      const suffix = el.getAttribute("data-suffix") || "";
+      const duration = 900;
+      const start = performance.now();
+
+      function tick(now){
+        const t = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+        const val = Math.round(target * eased);
+        el.textContent = `${val}${suffix}`;
+        if (t < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (!e.isIntersecting) return;
+        counters.forEach(el => {
+          if (el.dataset.done) return;
+          el.dataset.done = "1";
+          animate(el);
+        });
+        obs.disconnect();
+      });
+    }, { threshold: 0.35 });
+
+    obs.observe(statsRoot);
+  })();
 </script>
 
 </body>
