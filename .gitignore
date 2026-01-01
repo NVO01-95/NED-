@@ -1,4 +1,20 @@
-venv/
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+venv/
+env/
+
+# Config & Secret
 .env
+.flaskenv
+instance/
+
+# Specific Data (baxe de date/json-uri cu info personale)
+data/*.bak
+data/locations.json
+data/ned_data.json
+
+# System
+.DS_Store
+Thumbs.db

@@ -13,6 +13,7 @@ from typing import Callable
 from ned.services.route_warnings_service import compute_route_warnings
 from ned.services.location_suggest_service import suggest_locations
 from difflib import get_close_matches
+from dotenv import load_dotenv
 
 
 
@@ -91,8 +92,12 @@ import math
 import re
 import os
 
+load_dotenv() 
+
 app = Flask(__name__)
-app.secret_key = "change-this-in-production"
+app.secret_key = os.getenv('SECRET_KEY', 'change-this-in-production')
+
+
 
 
 from difflib import get_close_matches
