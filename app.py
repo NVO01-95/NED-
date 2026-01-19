@@ -1,34 +1,39 @@
-from flask import Flask, render_template, request, redirect, url_for, session, make_response, flash, g
-from data_utils import load_data, save_data, ensure_route_ids   
-from chat_logic import add_route_message, delete_route_message, can_user_post, related_routes_for 
-from werkzeug.security import generate_password_hash, check_password_hash
-from collections import Counter
+import csv
+import io
+import json
+import math
+import os
+import re
+from dataclasses import dataclass
 from datetime import datetime
+from typing import Callable
+
+from collections import Counter
+from difflib import get_close_matches
+
+from dotenv import load_dotenv
+from flask import (Flask, render_template, request, redirect, url_for,session, make_response, flash, g)
+from werkzeug.security import generate_password_hash, check_password_hash
+
+from data_utils import load_data, save_data, ensure_route_ids
+from chat_logic import add_route_message, delete_route_message, can_user_post, related_routes_for
 from location_store import load_locations, add_location, delete_location, resolve_location
 from phrases_store import load_phrases_data, filter_phrases
+
 from ned.services.route_service import build_route_from_text
-from ned.services.route_calc_service import compute_route_calculation
-from dataclasses import dataclass
-from typing import Callable
 from ned.services.route_warnings_service import compute_route_warnings
 from ned.services.location_suggest_service import suggest_locations
-from difflib import get_close_matches
-from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+app = Flask(__name__)
+app.secret_key = os.getenv("SECRET_KEY", "change-this-in-production")
 
 
-
-
-@dataclass(frozen=True)
-class Segment:
-    from_lat: float
-    from_lon: float
-    to_lat: float
-    to_lon: float
-    distance_nm: float
-    bearing_deg: float
-    eta_hours: float
-    eta_hhmm: str
-
+# ----------------------------------------
+# Data models (results)
+# ----------------------------------------
 
 @dataclass(frozen=True)
 class CalcResult:
@@ -37,6 +42,91 @@ class CalcResult:
     total_eta_hours: float
     total_eta_hhmm: str
     segments: list[dict]
+
+
+# ----------------------------------------
+# Local resolver (JSON locations)
+# ----------------------------------------
+
+class LocalLocationsResolver:
+    def __init__(self, locations_path: str):
+        self.locations_path = locations_path
+        self._locations = None
+
+    def _load_locations(self):
+        with open(self.locations_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        if isinstance(data, dict) and isinstance(data.get("locations"), list):
+            return data["locations"]
+
+        if isinstance(data, list):
+            return data
+
+        if isinstance(data, dict):
+            out = []
+            for name, val in data.items():
+                if isinstance(val, dict) and "lat" in val and "lon" in val:
+                    out.append({"name": name, "lat": val["lat"], "lon": val["lon"]})
+            return out
+
+        return []
+
+    def _ensure_loaded(self):
+        if self._locations is None:
+            self._locations = self._load_locations()
+
+    def resolve(self, name: str):
+        self._ensure_loaded()
+        q = (name or "").strip().lower()
+        if not q:
+            return None
+
+        for item in self._locations:
+            nm = str(item.get("name", "")).strip().lower()
+            if nm == q:
+                return float(item["lat"]), float(item["lon"])
+
+        return None
+
+    def suggest(self, q: str, limit: int = 3):
+        self._ensure_loaded()
+        q = (q or "").strip().lower()
+        if not q:
+            return []
+
+        names = [
+            str(x.get("name", "")).strip()
+            for x in self._locations
+            if str(x.get("name", "")).strip()
+        ]
+
+        contains = [n for n in names if q in n.lower()][:limit]
+        if len(contains) >= limit:
+            return contains
+
+        rest = get_close_matches(q, names, n=limit - len(contains), cutoff=0.6)
+        out = contains + [x for x in rest if x not in contains]
+        return out[:limit]
+
+
+# ----------------------------------------
+# Navigation calc.
+# ----------------------------------------
+
+def haversine_nm(lat1, lon1, lat2, lon2):
+    R_KM = 6371.0
+    KM_TO_NM = 0.539956803
+
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    d_phi = math.radians(lat2 - lat1)
+    d_lam = math.radians(lon2 - lon1)
+
+    a = (math.sin(d_phi / 2) ** 2) + (math.cos(phi1) * math.cos(phi2) * (math.sin(d_lam / 2) ** 2))
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    return (R_KM * c) * KM_TO_NM
 
 
 def compute_route_calculation(
@@ -84,175 +174,80 @@ def compute_route_calculation(
     )
 
 
+# ----------------------------------------
+# Auth helper
+# ----------------------------------------
 
-import json
-import csv 
-import io
-import math
-import re
-import os
-
-load_dotenv() 
-
-app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY', 'change-this-in-production')
-
-
-
-
-from difflib import get_close_matches
-
-
-class LocalLocationsResolver:
-    def __init__(self, locations_path: str):
-        self.locations_path = locations_path
-        self._locations = None
-
-    def _load_locations(self):
-        with open(self.locations_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-
-        if isinstance(data, dict) and "locations" in data and isinstance(data["locations"], list):
-            return data["locations"]
-        if isinstance(data, list):
-            return data
-        if isinstance(data, dict):
-            out = []
-            for name, val in data.items():
-                if isinstance(val, dict) and "lat" in val and "lon" in val:
-                    out.append({"name": name, "lat": val["lat"], "lon": val["lon"]})
-            return out
-        return []
-
-    def _ensure_loaded(self):
-        if self._locations is None:
-            self._locations = self._load_locations()
-
-    def resolve(self, name: str):
-        self._ensure_loaded()
-        q = (name or "").strip().lower()
-        if not q:
-            return None
-
-        for item in self._locations:
-            nm = str(item.get("name", "")).strip().lower()
-            if nm == q:
-                return float(item["lat"]), float(item["lon"])
-        return None
-    
-    def suggest(self, q: str, limit: int = 3):
-        self._ensure_loaded()
-        q = (q or "").strip().lower()
-        if not q:
-            return []
-
-        names = [str(x.get("name", "")).strip() for x in self._locations if str(x.get("name", "")).strip()]
-
-        contains = [n for n in names if q in n.lower()][:limit]
-        if len(contains) >= limit:
-            return contains
-
-        rest = get_close_matches(q, names, n=limit - len(contains), cutoff=0.6)
-        out = contains + [x for x in rest if x not in contains]
-        return out[:limit]
-
-def haversine_nm(lat1, lon1, lat2, lon2):
-    """
-    Great-circle distance in nautical miles (NM).
-    Input: decimal degrees.
-    """
-    R_km = 6371.0
-    km_to_nm = 0.539956803
-
-    phi1 = math.radians(lat1)
-    phi2 = math.radians(lat2)
-    d_phi = math.radians(lat2 - lat1)
-    d_lam = math.radians(lon2 - lon1)
-
-    a = math.sin(d_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(d_lam / 2) ** 2
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-
-    km = R_km * c
-    return km * km_to_nm
-
-def require_login():
+def require_login() -> bool:
     if not session.get("user_id"):
         flash("This feature is available for logged-in users.", "error")
         return False
     return True
 
-
-
+# //doneee
 def bearing_deg(lat1, lon1, lat2, lon2):
-    """
-    Initial bearing (0..360 degrees) from point 1 to point 2.
-    """
     phi1 = math.radians(lat1)
     phi2 = math.radians(lat2)
     d_lam = math.radians(lon2 - lon1)
 
     y = math.sin(d_lam) * math.cos(phi2)
-    x = math.cos(phi1) * math.sin(phi2) - math.sin(phi1) * math.cos(phi2) * math.cos(d_lam)
+    x = (math.cos(phi1) * math.sin(phi2)) - (math.sin(phi1) * math.cos(phi2) * math.cos(d_lam))
 
     brng = math.degrees(math.atan2(y, x))
     return (brng + 360) % 360
 
 
-
 def _clean_coord_text(s: str) -> str:
     return (
-        s.strip()
-         .replace("º", "°")
-         .replace("’", "'")
-         .replace("′", "'")
-         .replace("”", '"')
-         .replace("″", '"')
+        (s or "")
+        .strip()
+        .replace("º", "°")
+        .replace("’", "'")
+        .replace("′", "'")
+        .replace("”", '"')
+        .replace("″", '"')
     )
+
 
 def dms_to_decimal(deg: float, minutes: float, seconds: float, hemi: str) -> float:
     value = abs(deg) + (minutes / 60.0) + (seconds / 3600.0)
-    hemi = hemi.upper()
-    if hemi in ("S", "W"):
+    if (hemi or "").upper() in ("S", "W"):
         value *= -1
     return value
 
+
+def _validate_coord_range(val: float, coord_type: str) -> None:
+    if coord_type == "lat":
+        if not (-90 <= val <= 90):
+            raise ValueError(f"Latitude {val} out of range (-90..90).")
+        return
+
+    if coord_type == "lon":
+        if not (-180 <= val <= 180):
+            raise ValueError(f"Longitude {val} out of range (-180..180).")
+        return
+
+
 def parse_single_coord(token: str, coord_type: str) -> float:
-    """
-    coord_type: 'lat' or 'lon' (folosit doar pentru validare range)
-    Acceptă:
-      - decimal: 44.16 / 28.64 (cu semn + sau -)
-      - DM: 44 10.2 N / 28 39.0 E
-      - DMS: 44 10 12 N / 28 39 00 E
-    Returnează valoare decimală.
-    """
     t = _clean_coord_text(token).upper()
 
-    # 1) încercăm DECIMAL simplu
-    # ex: 44.16  sau -73.99
     if re.fullmatch(r"[+-]?\d+(\.\d+)?", t):
         val = float(t)
         _validate_coord_range(val, coord_type)
         return val
 
-    # 2) încercăm DM sau DMS cu hemisferă
-    # exemple acceptate:
-    # 44 10.2 N
-    # 44°10.2'N
-    # 44 10 12 N
-    # 44°10'12"N
-    #
-    # scoatem simbolurile în spații ca să putem split-ui ușor
     work = (
         t.replace("°", " ")
-         .replace("'", " ")
-         .replace('"', " ")
-         .replace(",", " ")
+        .replace("'", " ")
+        .replace('"', " ")
+        .replace(",", " ")
     )
     parts = [p for p in work.split() if p]
 
-    # Ultimul trebuie să fie N/S/E/W
     if len(parts) < 3:
-        raise ValueError(f"Invalid coordinate '{token}'. Use decimal (44.16) or DM/DMS (44 10.2 N).")
+        raise ValueError(
+            f"Invalid coordinate '{token}'. Use decimal (44.16) or DM/DMS (44 10.2 N)."
+        )
 
     hemi = parts[-1]
     if hemi not in ("N", "S", "E", "W"):
@@ -261,43 +256,28 @@ def parse_single_coord(token: str, coord_type: str) -> float:
     nums = parts[:-1]
 
     if len(nums) == 2:
-        # DM: deg min.dec
         deg = float(nums[0])
         minutes = float(nums[1])
-        seconds = 0.0
-        val = dms_to_decimal(deg, minutes, seconds, hemi)
+        val = dms_to_decimal(deg, minutes, 0.0, hemi)
     elif len(nums) == 3:
-        # DMS: deg min sec
         deg = float(nums[0])
         minutes = float(nums[1])
         seconds = float(nums[2])
         val = dms_to_decimal(deg, minutes, seconds, hemi)
     else:
-        raise ValueError(f"Invalid coordinate '{token}'. Example: 44 10.2 N, 28 39.0 E")
+        raise ValueError(
+            f"Invalid coordinate '{token}'. Example: 44 10.2 N, 28 39.0 E"
+        )
 
     _validate_coord_range(val, coord_type)
     return val
 
-def _validate_coord_range(val: float, coord_type: str):
-    if coord_type == "lat":
-        if not (-90 <= val <= 90):
-            raise ValueError(f"Latitude {val} out of range (-90..90).")
-    elif coord_type == "lon":
-        if not (-180 <= val <= 180):
-            raise ValueError(f"Longitude {val} out of range (-180..180).")
-
+# //doneee
 def parse_waypoints_mixed(waypoints_text: str):
-    """
-    Accepta:
-      - linii cu "lat, lon"
-      - sau nume de locații din locations.json
-    Returnează listă de (lat, lon).
-    """
-    points = []
+    points: list[tuple[float, float]] = []
     lines = [ln.strip() for ln in (waypoints_text or "").splitlines() if ln.strip()]
 
     for ln in lines:
-        # 1) coordonate "lat, lon"
         if "," in ln:
             a, b = ln.split(",", 1)
             try:
@@ -308,10 +288,10 @@ def parse_waypoints_mixed(waypoints_text: str):
             except ValueError:
                 pass
 
-        # 2) nume locație
         res = resolve_location(ln)
         if not res:
             raise ValueError(f"Location not found: {ln}. Use coordinates or ask admin to add it.")
+
         lat, lon, _display = res
         points.append((lat, lon))
 
@@ -321,38 +301,21 @@ def parse_waypoints_mixed(waypoints_text: str):
     return points
 
 
-def parse_waypoints(text):
-    """
-    Acceptă linii de tip:
-      44.16, 28.64
-      44 10.2 N, 28 39.0 E
-      44°10'12"N, 28°39'00"E
-    Return: [(lat, lon), ...]
-    """
-    if not text or not text.strip():
+def parse_waypoints(text: str):
+    if not (text or "").strip():
         raise ValueError("Waypoints are empty. Add at least 2 points (lat, lon).")
 
-    raw_lines = []
-    for part in text.replace(";", "\n").splitlines():
-        line = part.strip()
-        if line:
-            raw_lines.append(line)
+    raw_lines = [p.strip() for p in (text or "").replace(";", "\n").splitlines() if p.strip()]
 
-    points = []
+    points: list[tuple[float, float]] = []
     for i, line in enumerate(raw_lines, start=1):
-        # încercăm să separăm lat și lon
-        # dacă linia are virgula principală, împărțim pe prima virgulă
-        if "," in line:
-            left, right = line.split(",", 1)
-            lat_token = left.strip()
-            lon_token = right.strip()
-        else:
-            # fallback: separăm prin "  " sau " | " etc. (mai rar)
-            parts = line.split()
-            if len(parts) < 2:
-                raise ValueError(f"Waypoint line {i} invalid. Use 'lat, lon'.")
-            # ultima jumătate lon? nu e safe; mai bine cerem virgulă în fallback
-            raise ValueError(f"Waypoint line {i} needs a comma between lat and lon. Example: 44 10.2 N, 28 39.0 E")
+        if "," not in line:
+            raise ValueError(
+                f"Waypoint line {i} needs a comma between lat and lon. "
+                f"Example: 44 10.2 N, 28 39.0 E"
+            )
+
+        lat_token, lon_token = (x.strip() for x in line.split(",", 1))
 
         try:
             lat = parse_single_coord(lat_token, "lat")
@@ -367,16 +330,17 @@ def parse_waypoints(text):
 
     return points
 
+
 def ensure_route_ids(data: dict) -> dict:
     routes = data.get("routes", [])
-    changed = False
-
     max_id = 0
+
     for r in routes:
         rid = r.get("id")
         if isinstance(rid, int) and rid > max_id:
             max_id = rid
 
+    changed = False
     for r in routes:
         if not isinstance(r.get("id"), int):
             max_id += 1
@@ -388,52 +352,41 @@ def ensure_route_ids(data: dict) -> dict:
         save_data(data)
 
     return data
-
-def get_current_user(data):
+# //doneee
+def get_current_user(data: dict):
     uid = session.get("user_id")
-    users = data.get("users", [])
-    return next((u for u in users if u.get("id") == uid), None)
+    return next((u for u in data.get("users", []) if u.get("id") == uid), None)
 
-def is_admin_user(data):
+
+def is_admin_user(data: dict) -> bool:
     u = get_current_user(data)
     return bool(u and u.get("is_admin", False))
 
 
-
-def hours_to_hhmm(hours_float):
+def hours_to_hhmm(hours_float) -> str:
     if hours_float is None:
         return "-"
-    total_minutes = int(round(hours_float * 60))
-    h = total_minutes // 60
-    m = total_minutes % 60
+    total_minutes = int(round(float(hours_float) * 60))
+    h, m = divmod(total_minutes, 60)
     return f"{h:02d}:{m:02d}"
 
 
-def compute_voyage_stats(voyages):
-    """
-    Primește lista de voyages (dict-uri) și calculează:
-      - distanța totală (în NM)
-      - cel mai lung voyage
-      - cele mai frecvente porturi de plecare/destinație
-    """
+def compute_voyage_stats(voyages: list[dict]) -> dict:
     total_distance = 0.0
-    distances = []  # (distance, voyage_dict)
-    departures = []
-    destinations = []
+    distances: list[tuple[float, dict]] = []
+    departures: list[str] = []
+    destinations: list[str] = []
 
     for v in voyages:
-        # distanță
         dist_raw = v.get("distance_nm")
-        if dist_raw is not None and dist_raw != "":
+        if dist_raw not in (None, ""):
             try:
                 dist_val = float(dist_raw)
                 total_distance += dist_val
                 distances.append((dist_val, v))
             except ValueError:
-                # dacă nu se poate converti, îl ignorăm
                 pass
 
-        # porturi
         dep = (v.get("departure") or "").strip()
         dest = (v.get("destination") or "").strip()
         if dep:
@@ -441,7 +394,6 @@ def compute_voyage_stats(voyages):
         if dest:
             destinations.append(dest)
 
-    # longest voyage
     longest_voyage = None
     if distances:
         dist_val, v = max(distances, key=lambda x: x[0])
@@ -451,42 +403,37 @@ def compute_voyage_stats(voyages):
             "destination": v.get("destination"),
         }
 
-    # top ports
-    top_departures = Counter(departures).most_common(3)
-    top_destinations = Counter(destinations).most_common(3)
-
     return {
         "total_distance_nm": round(total_distance, 1),
         "longest_voyage": longest_voyage,
-        "top_departures": top_departures,
-        "top_destinations": top_destinations,
+        "top_departures": Counter(departures).most_common(3),
+        "top_destinations": Counter(destinations).most_common(3),
     }
 
-def compute_contact_stats_for_port(official_contacts, personal_contacts, port_name):
-    """
-    Calculează statistici simple pentru un port:
-      - număr de contacte oficiale
-      - număr de contacte personale
-      - top roluri/tipuri de contacte (MRCC, Agent, Pilot etc.)
-    """
-    official = [c for c in official_contacts if (c.get("port") or "").strip() == port_name]
-    personal = [p for p in personal_contacts if (p.get("port") or "").strip() == port_name]
 
-    roles = []
+def compute_contact_stats_for_port(
+    official_contacts: list[dict],
+    personal_contacts: list[dict],
+    port_name: str,
+) -> dict:
+    port_name = (port_name or "").strip()
+
+    official = [c for c in official_contacts if (c.get("port") or "").strip() == port_name]
+    personal = [c for c in personal_contacts if (c.get("port") or "").strip() == port_name]
+
+    roles: list[str] = []
     for c in official + personal:
         role = (c.get("role") or c.get("type") or "").strip()
         if role:
             roles.append(role)
 
-    role_counts = Counter(roles).most_common(3)
-
     return {
         "official_count": len(official),
         "personal_count": len(personal),
         "total_count": len(official) + len(personal),
-        "top_roles": role_counts,
+        "top_roles": Counter(roles).most_common(3),
     }
-
+# //doneee
 @app.before_request
 def load_current_user_into_g():
     g.current_user = None
@@ -496,49 +443,37 @@ def load_current_user_into_g():
 
     try:
         data = load_data()
-        users = data.get("users", [])
-        g.current_user = next((u for u in users if u.get("id") == uid), None)
+        g.current_user = next((u for u in data.get("users", []) if u.get("id") == uid), None)
     except Exception:
         g.current_user = None
 
 
 @app.context_processor
-def inject_auth_context():
+def inject_user_context():
+    current_user = g.get("current_user")
     return {
-        "current_user": g.get("current_user"),
-        "is_authenticated": bool(g.get("current_user")),
-        "is_admin": bool(g.get("current_user") and g.current_user.get("is_admin", False)),
-    }
-
-
-@app.context_processor
-def inject_current_user():
-    return {
+        "current_user": current_user,
+        "is_authenticated": bool(current_user),
+        "is_admin": bool(current_user and current_user.get("is_admin", False)),
         "current_username": session.get("username"),
         "current_user_id": session.get("user_id"),
     }
 
 
-
 @app.route("/")
 def home():
-    data = load_data()
-    users = data.get("users", [])
+    current_user = g.get("current_user")
 
-    uid = session.get("user_id")
-    current_user = next((u for u in users if u.get("id") == uid), None)
-
-    # dacă este admin -> trimitem direct la panoul de control
     if current_user and current_user.get("is_admin", False):
         return redirect(url_for("admin_panel"))
 
-    # dacă NU este admin -> afișăm dashboard-ul standard
     return render_template("index.html")
 
 
 @app.route("/admin")
 def admin_panel():
     data = load_data()
+
     users = data.get("users", [])
     voyages = data.get("voyages", [])
     routes = data.get("routes", [])
@@ -547,10 +482,7 @@ def admin_panel():
     personal_contacts = data.get("personal_contacts", [])
     weather_notes = data.get("weather_notes", [])
 
-    uid = session.get("user_id")
-    current_user = next((u for u in users if u.get("id") == uid), None)
-
-    # doar adminul are voie aici
+    current_user = g.get("current_user")
     if not current_user or not current_user.get("is_admin", False):
         return redirect(url_for("login"))
 
@@ -593,7 +525,7 @@ def admin_locations():
         try:
             lat = float(lat_str)
             lon = float(lon_str)
-        except Exception:
+        except ValueError:
             flash("Lat/Lon must be valid numbers.", "error")
             return redirect(url_for("admin_locations"))
 
@@ -602,11 +534,9 @@ def admin_locations():
         return redirect(url_for("admin_locations"))
 
     locations = load_locations()
-    # sort keys for display
     keys = sorted(locations.keys())
     return render_template("admin_locations.html", locations=locations, keys=keys)
-
-
+# //doneee
 @app.route("/admin/locations/delete", methods=["POST"])
 def admin_delete_location():
     data = load_data()
@@ -618,8 +548,7 @@ def admin_delete_location():
         flash("Missing location name.", "error")
         return redirect(url_for("admin_locations"))
 
-    ok = delete_location(name)
-    if ok:
+    if delete_location(name):
         flash("Location deleted.", "success")
     else:
         flash("Location not found.", "error")
@@ -632,9 +561,7 @@ def admin_reset_password():
     data = load_data()
     users = data.get("users", [])
 
-    uid = session.get("user_id")
-    current_user = next((u for u in users if u.get("id") == uid), None)
-
+    current_user = g.get("current_user")
     if not current_user or not current_user.get("is_admin", False):
         return redirect(url_for("login"))
 
@@ -662,7 +589,6 @@ def admin_reset_password():
                 save_data(data)
                 admin_message = f"Password updated for user '{target_user.get('username')}'."
 
-    # reload summary pentru afișare
     voyages = data.get("voyages", [])
     routes = data.get("routes", [])
     log_entries = data.get("log_entries", [])
@@ -690,7 +616,6 @@ def admin_reset_password():
     )
 
 
-
 @app.route("/register", methods=["GET", "POST"])
 def register():
     data = load_data()
@@ -707,26 +632,25 @@ def register():
         if any(u.get("username") == username for u in users):
             return render_template("register.html", error="Username already taken.")
 
-        new_id = (max([u.get("id", 0) for u in users]) + 1) if users else 1
+        next_id = max((u.get("id", 0) for u in users), default=0) + 1
 
-        user = {
-            "id": new_id,
+        users.append({
+            "id": next_id,
             "username": username,
             "password_hash": generate_password_hash(password),
             "is_admin": False,
             "can_post": True,
-        }
+        })
 
-        users.append(user)
         data["users"] = users
         save_data(data)
 
-        session["user_id"] = new_id
+        session["user_id"] = next_id
         session["username"] = username
         return redirect(url_for("home"))
 
     return render_template("register.html", error=None)
-
+# //doneee
 @app.route("/login", methods=["GET", "POST"])
 def login():
     data = load_data()
@@ -736,31 +660,24 @@ def login():
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
 
-        # caută userul
-        user = None
-        for u in users:
-            if u.get("username") == username:
-                user = u
-                break
-
-        if user is None:
+        user = next((u for u in users if u.get("username") == username), None)
+        if not user:
             return render_template("login.html", error="Invalid username or password.")
 
         if not check_password_hash(user.get("password_hash", ""), password):
             return render_template("login.html", error="Invalid username or password.")
 
-        # login ok
         session["user_id"] = user["id"]
         session["username"] = user["username"]
-
-        return redirect(url_for("home")) 
+        return redirect(url_for("home"))
 
     return render_template("login.html", error=None)
+
 
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("home"))  
+    return redirect(url_for("home"))
 
 
 @app.route("/forgot", methods=["GET", "POST"])
@@ -773,36 +690,16 @@ def forgot_password():
         password = request.form.get("password", "").strip()
         password2 = request.form.get("password2", "").strip()
 
-        # validări de bază
         if not username or not password or not password2:
-            return render_template(
-                "forgot_password.html",
-                error="All fields are required.",
-                success=None,
-            )
+            return render_template("forgot_password.html", error="All fields are required.", success=None)
 
         if password != password2:
-            return render_template(
-                "forgot_password.html",
-                error="Passwords do not match.",
-                success=None,
-            )
+            return render_template("forgot_password.html", error="Passwords do not match.", success=None)
 
-        # căutăm userul după username
-        target = None
-        for u in users:
-            if u.get("username") == username:
-                target = u
-                break
+        target = next((u for u in users if u.get("username") == username), None)
+        if not target:
+            return render_template("forgot_password.html", error="Username not found.", success=None)
 
-        if target is None:
-            return render_template(
-                "forgot_password.html",
-                error="Username not found.",
-                success=None,
-            )
-
-        # schimbăm parola (hash)
         target["password_hash"] = generate_password_hash(password)
         data["users"] = users
         save_data(data)
@@ -813,15 +710,8 @@ def forgot_password():
             success="Password successfully reset. You can now log in with the new password.",
         )
 
-    # GET simplu
-    return render_template(
-        "forgot_password.html",
-        error=None,
-        success=None,
-    )
-
-
-
+    return render_template("forgot_password.html", error=None, success=None)
+# //doneee
 @app.route("/voyage", methods=["GET", "POST"])
 def voyage_sheet():
     data = load_data()
@@ -829,7 +719,6 @@ def voyage_sheet():
 
     selected_voyage = None
     selected_index = None
-
     editing = False
     form_voyage = None
     edit_index = None
@@ -838,7 +727,6 @@ def voyage_sheet():
         if not require_login():
             return redirect(url_for("voyage_sheet"))
 
-        # create or update based on hidden voyage_index
         idx_str = request.form.get("voyage_index", "").strip()
 
         departure = request.form.get("departure", "").strip()
@@ -848,7 +736,6 @@ def voyage_sheet():
         distance_nm = request.form.get("distance_nm", "").strip()
         notes = request.form.get("notes", "").strip()
 
-        # dacă editezi → păstrăm checklist-ul și user_id-ul vechi
         existing_checklist = {}
         existing_user_id = None
 
@@ -869,30 +756,26 @@ def voyage_sheet():
             "distance_nm": distance_nm,
             "notes": notes,
             "checklist": existing_checklist,
-            # dacă e editare -> păstrăm user_id-ul, dacă e nou -> punem user-ul logat (sau None)
             "user_id": existing_user_id if idx_str else session.get("user_id"),
         }
 
         if idx_str:
             try:
                 idx = int(idx_str)
+            except ValueError:
+                voyages.append(new_voyage)
+            else:
                 if 0 <= idx < len(voyages):
                     voyages[idx] = new_voyage
                 else:
                     voyages.append(new_voyage)
-            except ValueError:
-                voyages.append(new_voyage)
         else:
             voyages.append(new_voyage)
 
         data["voyages"] = voyages
         save_data(data)
-
         return redirect(url_for("voyage_sheet"))
 
-    # ------------------ GET REQUEST BELOW ------------------
-
-    # handle GET parameters: view (for notes)
     view_index = request.args.get("view")
     if view_index is not None:
         try:
@@ -903,7 +786,6 @@ def voyage_sheet():
         except ValueError:
             pass
 
-    # handle GET parameters: edit (for loading form)
     edit_param = request.args.get("edit")
     if edit_param is not None:
         try:
@@ -915,17 +797,10 @@ def voyage_sheet():
         except ValueError:
             pass
 
-    # count voyages
-    voyage_count = len(voyages)
-
-    # count voyages belonging to this user
     current_user_id = session.get("user_id")
     user_voyage_count = None
     if current_user_id:
-        user_voyage_count = sum(
-            1 for v in voyages
-            if v.get("user_id") == current_user_id
-        )
+        user_voyage_count = sum(1 for v in voyages if v.get("user_id") == current_user_id)
 
     return render_template(
         "voyage_sheet.html",
@@ -934,8 +809,10 @@ def voyage_sheet():
         selected_index=selected_index,
         editing=editing,
         edit_index=edit_index,
-        form_voyage=form_voyage
+        form_voyage=form_voyage,
+        user_voyage_count=user_voyage_count,
     )
+
 
 @app.route("/voyage/<int:voyage_id>", methods=["GET", "POST"])
 def voyage_detail(voyage_id):
@@ -947,16 +824,15 @@ def voyage_detail(voyage_id):
         flash("Voyage not found.", "error")
         return redirect(url_for("voyage_sheet"))
 
-    # (opțional) permisiuni: doar owner sau admin
     uid = session.get("user_id")
-    users = data.get("users", [])
-    current_user = next((u for u in users if u.get("id") == uid), None)
+    current_user = g.get("current_user")
     is_admin = bool(current_user and current_user.get("is_admin", False))
     is_owner = (voyage.get("author_id") == uid) or (voyage.get("user_id") == uid)
 
     if request.method == "POST":
         if not uid:
             return redirect(url_for("login"))
+
         if not (is_admin or is_owner):
             flash("You are not allowed to edit this voyage.", "error")
             return redirect(url_for("voyage_detail", voyage_id=voyage_id))
@@ -969,7 +845,19 @@ def voyage_detail(voyage_id):
         flash("Voyage saved.", "success")
         return redirect(url_for("voyage_detail", voyage_id=voyage_id))
 
-    return render_template("voyage_detail.html", voyage=voyage, is_admin=is_admin, is_owner=is_owner)
+    return render_template(
+        "voyage_detail.html",
+        voyage=voyage,
+        is_admin=is_admin,
+        is_owner=is_owner,
+    )
+
+
+def _can_edit_voyage(voyage: dict, uid: int | None, is_admin: bool) -> bool:
+    if not uid:
+        return False
+    is_owner = (voyage.get("user_id") == uid) or (voyage.get("author_id") == uid)
+    return bool(is_admin or is_owner)
 
 
 @app.route("/voyage/delete/<int:index>", methods=["POST"])
@@ -978,18 +866,15 @@ def delete_voyage(index):
         return redirect(url_for("voyage_sheet"))
 
     data = load_data()
-    users = data.get("users", [])
     voyages = data.get("voyages", [])
 
     uid = session.get("user_id")
-    current_user = next((u for u in users if u.get("id") == uid), None)
+    current_user = g.get("current_user")
     is_admin = bool(current_user and current_user.get("is_admin", False))
 
     if 0 <= index < len(voyages):
         v = voyages[index]
-        is_owner = (v.get("user_id") == uid) or (v.get("author_id") == uid)
-
-        if not (is_admin or is_owner):
+        if not _can_edit_voyage(v, uid, is_admin):
             flash("You are not allowed to delete this voyage.", "error")
             return redirect(url_for("voyage_sheet"))
 
@@ -1007,18 +892,15 @@ def update_checklist(index):
         return redirect(url_for("voyage_sheet"))
 
     data = load_data()
-    users = data.get("users", [])
     voyages = data.get("voyages", [])
 
     uid = session.get("user_id")
-    current_user = next((u for u in users if u.get("id") == uid), None)
+    current_user = g.get("current_user")
     is_admin = bool(current_user and current_user.get("is_admin", False))
 
     if 0 <= index < len(voyages):
         v = voyages[index]
-        is_owner = (v.get("user_id") == uid) or (v.get("author_id") == uid)
-
-        if not (is_admin or is_owner):
+        if not _can_edit_voyage(v, uid, is_admin):
             flash("You are not allowed to update this checklist.", "error")
             return redirect(url_for("voyage_sheet", view=index))
 
@@ -1029,34 +911,31 @@ def update_checklist(index):
             "documents": "documents" in request.form,
             "safety": "safety" in request.form,
         }
+
         voyages[index]["checklist"] = checklist
         data["voyages"] = voyages
         save_data(data)
         flash("Checklist updated.", "success")
 
     return redirect(url_for("voyage_sheet", view=index))
-
+# //doneee
 
 @app.route("/route", methods=["GET", "POST"])
 def route_planner():
     data = load_data()
     data = ensure_route_ids(data)
+
     routes_all = data.get("routes", [])
+    routes_view = list(routes_all)
 
     calc_result = None
     calc_error = None
 
-    # -----------------------------
-    # SORT + LIMIT (GET params)
-    # -----------------------------
     sort_by = request.args.get("sort", "new")   # new | old | nm_desc | nm_asc
     limit = request.args.get("limit", "10")     # 10 | 25 | 50 | all
 
-    def created_key(r):
+    def created_key(r: dict):
         return r.get("created_at", "")
-
-    # sortăm o copie pentru afișare
-    routes_view = list(routes_all)
 
     if sort_by == "old":
         routes_view = sorted(routes_view, key=created_key)
@@ -1077,13 +956,10 @@ def route_planner():
     if limit != "all":
         try:
             n = int(limit)
-            routes_view = routes_view[:n]
-        except Exception:
-            routes_view = routes_view[:10]
+        except ValueError:
+            n = 10
+        routes_view = routes_view[:n]
 
-    # -----------------------------
-    # POST: create new route
-    # -----------------------------
     if request.method == "POST":
         if not session.get("user_id"):
             return redirect(url_for("login"))
@@ -1091,7 +967,6 @@ def route_planner():
         route_name = request.form.get("route_name", "").strip()
         route_departure = request.form.get("route_departure", "").strip()
         route_destination = request.form.get("route_destination", "").strip()
-
         speed_kn_str = request.form.get("speed_kn", "").strip()
         waypoints_text = request.form.get("waypoints", "").strip()
         route_notes = request.form.get("route_notes", "").strip()
@@ -1107,6 +982,7 @@ def route_planner():
         try:
             if not speed_kn_str:
                 raise ValueError("Speed (kn) is required.")
+
             speed_kn = float(speed_kn_str)
             if speed_kn <= 0:
                 raise ValueError("Speed must be > 0 knots.")
@@ -1120,10 +996,7 @@ def route_planner():
 
             points = [(w.lat, w.lon) for w in build.waypoints]
 
-            route_warnings = compute_route_warnings(
-                points=points,
-                haversine_nm=haversine_nm,
-            )
+            route_warnings = compute_route_warnings(points=points, haversine_nm=haversine_nm)
 
             calc = compute_route_calculation(
                 points=points,
@@ -1142,20 +1015,10 @@ def route_planner():
                 "warnings": route_warnings,
             }
 
-            # next id (safe)
             next_id = 1
             if routes_all:
                 ids = [r.get("id", 0) for r in routes_all if isinstance(r.get("id", 0), int)]
-                next_id = max(ids) + 1 if ids else 1
-            
-            status_filter = request.args.get("status", "planned")  # planned | done | all
-
-            if status_filter == "planned":
-                routes_all = [r for r in routes_all if r.get("status", "planned") != "done"]
-            elif status_filter == "done":
-                routes_all = [r for r in routes_all if r.get("status") == "done"]
-            # all -> nu filtrăm
-
+                next_id = (max(ids) + 1) if ids else 1
 
             new_route = {
                 "id": next_id,
@@ -1173,7 +1036,6 @@ def route_planner():
                 "done_at": None,
             }
 
-            # salvăm în lista REALĂ, nu în lista filtrată pt afișare
             data["routes"].append(new_route)
             save_data(data)
 
@@ -1182,21 +1044,68 @@ def route_planner():
         except Exception as e:
             calc_error = str(e)
 
-    
-    uid = session.get("user_id")
-    current_user = next((u for u in data.get("users", []) if u.get("id") == uid), None)
+    current_user = g.get("current_user")
     is_admin = bool(current_user and current_user.get("is_admin", False))
 
-
-
     return render_template(
-    "route_planner.html",
-    routes=routes_view,
-    users=data.get("users", []),
-    is_admin=is_admin,
-    calc_result=calc_result,
-    calc_error=calc_error,
-)
+        "route_planner.html",
+        routes=routes_view,
+        users=data.get("users", []),
+        is_admin=is_admin,
+        calc_result=calc_result,
+        calc_error=calc_error,
+    )
+# //doneee
+
+def _route_coords_for_geojson(route: dict) -> list[list[float]]:
+    calc = route.get("calc") or {}
+    segments = calc.get("segments") or []
+
+    if segments:
+        coords: list[list[float]] = []
+        first = segments[0].get("from", {})
+        coords.append([first.get("lon"), first.get("lat")])  # GeoJSON: [lon, lat]
+
+        for s in segments:
+            to = s.get("to", {})
+            coords.append([to.get("lon"), to.get("lat")])
+
+        return coords
+
+    raw = (route.get("waypoints_raw") or "").strip()
+    if not raw:
+        raise ValueError("This route has no waypoints saved yet.")
+
+    points = parse_waypoints(raw)
+    if len(points) < 2:
+        raise ValueError("You need at least 2 waypoints to export GeoJSON.")
+
+    return [[lon, lat] for (lat, lon) in points]
+
+
+def _route_geojson_feature(route: dict, include_id: bool = False) -> dict:
+    calc = route.get("calc") or {}
+    coords = _route_coords_for_geojson(route)
+
+    if len(coords) < 2:
+        raise ValueError("Not enough points to build a LineString.")
+
+    props = {
+        "name": route.get("name", ""),
+        "departure": route.get("departure", ""),
+        "destination": route.get("destination", ""),
+        "total_nm": calc.get("total_nm"),
+        "eta_hhmm": calc.get("total_eta_hhmm"),
+        "author": route.get("author", ""),
+    }
+    if include_id:
+        props["id"] = route.get("id")
+
+    return {
+        "type": "Feature",
+        "properties": props,
+        "geometry": {"type": "LineString", "coordinates": coords},
+    }
 
 
 @app.route("/route/geojson/<int:index>")
@@ -1204,59 +1113,19 @@ def export_route_geojson(index):
     data = load_data()
     routes = data.get("routes", [])
 
-    if index < 0 or index >= len(routes):
+    if not (0 <= index < len(routes)):
         flash("Route not found.", "error")
         return redirect(url_for("route_planner"))
 
     r = routes[index]
 
     try:
-        coords = []
-        calc = r.get("calc") or {}
-        segments = calc.get("segments") or []
-
-        if segments:
-            first = segments[0].get("from", {})
-            coords.append([first.get("lon"), first.get("lat")])  # GeoJSON: [lon, lat]
-            for s in segments:
-                to = s.get("to", {})
-                coords.append([to.get("lon"), to.get("lat")])
-        else:
-            raw = r.get("waypoints_raw", "").strip()
-            if not raw:
-                raise ValueError("This route has no waypoints saved yet.")
-
-            points = parse_waypoints(raw)
-            if len(points) < 2:
-                raise ValueError("You need at least 2 waypoints to export GeoJSON.")
-
-            coords = [[lon, lat] for (lat, lon) in points]
-
-        # verificare finală
-        if len(coords) < 2:
-            raise ValueError("Not enough points to build a LineString.")
-
-        feature = {
-            "type": "Feature",
-            "properties": {
-                "name": r.get("name", ""),
-                "departure": r.get("departure", ""),
-                "destination": r.get("destination", ""),
-                "total_nm": calc.get("total_nm"),
-                "eta_hhmm": calc.get("total_eta_hhmm"),
-                "author": r.get("author", ""),
-            },
-            "geometry": {
-                "type": "LineString",
-                "coordinates": coords
-            }
-        }
-
+        feature = _route_geojson_feature(r, include_id=False)
         geojson = {"type": "FeatureCollection", "features": [feature]}
 
         response = make_response(json.dumps(geojson, ensure_ascii=False, indent=2))
         response.headers["Content-Type"] = "application/geo+json; charset=utf-8"
-        response.headers["Content-Disposition"] = f'attachment; filename=route_{index+1}.geojson'
+        response.headers["Content-Disposition"] = f"attachment; filename=route_{index + 1}.geojson"
         return response
 
     except Exception as e:
@@ -1276,47 +1145,11 @@ def route_geojson_by_id(route_id):
         return redirect(url_for("route_planner"))
 
     try:
-        coords = []
-        calc = r.get("calc") or {}
-        segments = calc.get("segments") or []
-
-        if segments:
-            first = segments[0].get("from", {})
-            coords.append([first.get("lon"), first.get("lat")])  # GeoJSON = [lon, lat]
-            for s in segments:
-                to = s.get("to", {})
-                coords.append([to.get("lon"), to.get("lat")])
-        else:
-            raw = (r.get("waypoints_raw") or "").strip()
-            if not raw:
-                raise ValueError("This route has no waypoints saved yet.")
-            points = parse_waypoints(raw)
-            if len(points) < 2:
-                raise ValueError("You need at least 2 waypoints.")
-            coords = [[lon, lat] for (lat, lon) in points]
-
-        if len(coords) < 2:
-            raise ValueError("Not enough points for a LineString.")
-
-        feature = {
-            "type": "Feature",
-            "properties": {
-                "id": r.get("id"),
-                "name": r.get("name", ""),
-                "departure": r.get("departure", ""),
-                "destination": r.get("destination", ""),
-                "total_nm": calc.get("total_nm"),
-                "eta_hhmm": calc.get("total_eta_hhmm"),
-                "author": r.get("author", ""),
-            },
-            "geometry": {"type": "LineString", "coordinates": coords},
-        }
-
+        feature = _route_geojson_feature(r, include_id=True)
         return {"type": "FeatureCollection", "features": [feature]}
 
     except Exception as e:
         return {"type": "FeatureCollection", "features": [], "error": str(e)}
-
 
 
 @app.route("/route/export/<int:index>")
@@ -1324,7 +1157,7 @@ def export_route_csv(index):
     data = load_data()
     routes = data.get("routes", [])
 
-    if index < 0 or index >= len(routes):
+    if not (0 <= index < len(routes)):
         return redirect(url_for("route_planner"))
 
     r = routes[index]
@@ -1350,10 +1183,10 @@ def export_route_csv(index):
     for i, s in enumerate(segments, start=1):
         writer.writerow([
             i,
-            s.get("from", {}).get("lat", ""),
-            s.get("from", {}).get("lon", ""),
-            s.get("to", {}).get("lat", ""),
-            s.get("to", {}).get("lon", ""),
+            (s.get("from") or {}).get("lat", ""),
+            (s.get("from") or {}).get("lon", ""),
+            (s.get("to") or {}).get("lat", ""),
+            (s.get("to") or {}).get("lon", ""),
             s.get("distance_nm", ""),
             s.get("bearing_deg", ""),
             s.get("eta_hhmm", ""),
@@ -1364,32 +1197,24 @@ def export_route_csv(index):
     response.headers["Content-Disposition"] = f"attachment; filename={safe_name}.csv"
     response.headers["Content-Type"] = "text/csv; charset=utf-8"
     return response
-
-
+# //doneee
 @app.route("/logbook", methods=["GET", "POST"])
 def logbook():
     data = load_data()
     log_entries = data.get("log_entries", [])
 
     if request.method == "POST":
-        entry_date = request.form.get("entry_date", "").strip()
-        entry_time = request.form.get("entry_time", "").strip()
-        position = request.form.get("position", "").strip()
-        category = request.form.get("category", "").strip() or "Other"
-        log_notes = request.form.get("log_notes", "").strip()
-
-        new_entry = {
-            "date": entry_date,
-            "time": entry_time,
-            "position": position,
-            "category": category,
-            "notes": log_notes,
+        entry = {
+            "date": request.form.get("entry_date", "").strip(),
+            "time": request.form.get("entry_time", "").strip(),
+            "position": request.form.get("position", "").strip(),
+            "category": (request.form.get("category", "").strip() or "Other"),
+            "notes": request.form.get("log_notes", "").strip(),
         }
 
-        log_entries.append(new_entry)
+        log_entries.append(entry)
         data["log_entries"] = log_entries
         save_data(data)
-
         return redirect(url_for("logbook"))
 
     return render_template("logbook.html", log_entries=log_entries)
@@ -1407,33 +1232,30 @@ def delete_log_entry(index):
 
     return redirect(url_for("logbook"))
 
+
 @app.route("/logbook/export")
 def export_logbook():
     data = load_data()
     log_entries = data.get("log_entries", [])
 
-    # pregătim un CSV în memorie
     output = io.StringIO()
     writer = csv.writer(output)
 
-    # antet
     writer.writerow(["date", "time", "position", "category", "notes"])
 
-    # rânduri
     for entry in log_entries:
+        notes = (entry.get("notes") or "").replace("\r\n", " ").replace("\n", " ")
         writer.writerow([
             entry.get("date", ""),
             entry.get("time", ""),
             entry.get("position", ""),
             entry.get("category", ""),
-            entry.get("notes", "").replace("\r\n", " ").replace("\n", " ")
+            notes,
         ])
 
-    # pregătim răspunsul HTTP cu attachment
     response = make_response(output.getvalue())
     response.headers["Content-Disposition"] = "attachment; filename=logbook.csv"
     response.headers["Content-Type"] = "text/csv; charset=utf-8"
-
     return response
 
 
@@ -1446,63 +1268,62 @@ def contacts():
     selected_port = request.args.get("port", "").strip()
 
     if request.method == "POST":
-        # guest -> nu poate adăuga
         if not require_login():
-            # portul poate veni din form
             port_back = request.form.get("port", "").strip()
-            if port_back:
-                return redirect(url_for("contacts", port=port_back))
-            return redirect(url_for("contacts"))
+            return redirect(url_for("contacts", port=port_back) if port_back else url_for("contacts"))
 
         form_type = request.form.get("form_type", "")
-        if form_type == "personal":
-            port = request.form.get("port", "").strip()
-            person_name = request.form.get("person_name", "").strip()
-            person_role = request.form.get("person_role", "").strip()
-            person_phone = request.form.get("person_phone", "").strip()
-            person_notes = request.form.get("person_notes", "").strip()
+        if form_type != "personal":
+            return redirect(url_for("contacts", port=selected_port) if selected_port else url_for("contacts"))
 
-            if person_name and port:
-                new_personal = {
-                    "port": port,
-                    "name": person_name,
-                    "role": person_role,
-                    "phone": person_phone,
-                    "notes": person_notes,
-                    "user_id": session.get("user_id"),  # IMPORTANT pentru ownership
-                }
-                personal_contacts_all.append(new_personal)
-                data["personal_contacts"] = personal_contacts_all
-                save_data(data)
+        port = request.form.get("port", "").strip()
+        person_name = request.form.get("person_name", "").strip()
+        person_role = request.form.get("person_role", "").strip()
+        person_phone = request.form.get("person_phone", "").strip()
+        person_notes = request.form.get("person_notes", "").strip()
 
-            return redirect(url_for("contacts", port=port))
+        if person_name and port:
+            personal_contacts_all.append({
+                "port": port,
+                "name": person_name,
+                "role": person_role,
+                "phone": person_phone,
+                "notes": person_notes,
+                "user_id": session.get("user_id"),
+            })
+            data["personal_contacts"] = personal_contacts_all
+            save_data(data)
 
-        # fallback
-        return redirect(url_for("contacts", port=selected_port) if selected_port else url_for("contacts"))
+        return redirect(url_for("contacts", port=port))
 
-    # GET
-    ports = sorted({c.get("port", "") for c in contacts_list} | {p.get("port", "") for p in personal_contacts_all})
+    ports = sorted(
+        {c.get("port", "") for c in contacts_list} |
+        {p.get("port", "") for p in personal_contacts_all}
+    )
     ports = [p for p in ports if p]
 
     if selected_port:
-        official_filtered = [c for c in contacts_list if (c.get("port") or "").strip() == selected_port]
+        official_filtered = [
+            c for c in contacts_list
+            if (c.get("port") or "").strip() == selected_port
+        ]
 
         personal_filtered = []
         for idx, p in enumerate(personal_contacts_all):
             if (p.get("port") or "").strip() == selected_port:
-                p_with_index = dict(p)
-                p_with_index["idx"] = idx
-                personal_filtered.append(p_with_index)
+                item = dict(p)
+                item["idx"] = idx
+                personal_filtered.append(item)
 
-        port_stats = compute_contact_stats_for_port(contacts_list, personal_contacts_all, selected_port)
+        port_stats = compute_contact_stats_for_port(
+            contacts_list,
+            personal_contacts_all,
+            selected_port,
+        )
     else:
         official_filtered = []
         personal_filtered = []
         port_stats = None
-
-    total_official = len(contacts_list)
-    total_personal = len(personal_contacts_all)
-    total_ports = len(ports)
 
     return render_template(
         "contacts.html",
@@ -1511,11 +1332,11 @@ def contacts():
         official_contacts=official_filtered,
         personal_contacts=personal_filtered,
         port_stats=port_stats,
-        total_official=total_official,
-        total_personal=total_personal,
-        total_ports=total_ports,
+        total_official=len(contacts_list),
+        total_personal=len(personal_contacts_all),
+        total_ports=len(ports),
     )
-
+# //doneee
 
 @app.route("/contacts/personal/delete/<int:index>", methods=["POST"])
 def delete_personal_contact(index):
@@ -1523,11 +1344,10 @@ def delete_personal_contact(index):
         return redirect(url_for("contacts"))
 
     data = load_data()
-    users = data.get("users", [])
     personal_contacts_all = data.get("personal_contacts", [])
 
     uid = session.get("user_id")
-    current_user = next((u for u in users if u.get("id") == uid), None)
+    current_user = g.get("current_user")
     is_admin = bool(current_user and current_user.get("is_admin", False))
 
     deleted_port = ""
@@ -1537,21 +1357,16 @@ def delete_personal_contact(index):
         deleted_port = (item.get("port") or "").strip()
 
         is_owner = (item.get("user_id") == uid)
-
         if not (is_admin or is_owner):
             flash("You are not allowed to delete this contact.", "error")
-            if deleted_port:
-                return redirect(url_for("contacts", port=deleted_port))
-            return redirect(url_for("contacts"))
+            return redirect(url_for("contacts", port=deleted_port)) if deleted_port else redirect(url_for("contacts"))
 
         personal_contacts_all.pop(index)
         data["personal_contacts"] = personal_contacts_all
         save_data(data)
         flash("Contact deleted.", "success")
 
-    if deleted_port:
-        return redirect(url_for("contacts", port=deleted_port))
-    return redirect(url_for("contacts"))
+    return redirect(url_for("contacts", port=deleted_port)) if deleted_port else redirect(url_for("contacts"))
 
 
 @app.route("/weather", methods=["GET", "POST"])
@@ -1563,15 +1378,16 @@ def weather():
         if not require_login():
             return redirect(url_for("weather"))
 
-        note = request.form.get("weather_note", "").strip()
-        if note:
+        note_text = request.form.get("weather_note", "").strip()
+        if note_text:
             notes.append({
-                "text": note,
+                "text": note_text,
                 "user_id": session.get("user_id"),
                 "created_at": datetime.utcnow().isoformat(),
             })
             data["weather_notes"] = notes
             save_data(data)
+
         return redirect(url_for("weather"))
 
     return render_template("weather.html", weather_notes=notes)
@@ -1583,21 +1399,19 @@ def weather_delete(index):
         return redirect(url_for("weather"))
 
     data = load_data()
-    users = data.get("users", [])
     notes = data.get("weather_notes", [])
 
     uid = session.get("user_id")
-    current_user = next((u for u in users if u.get("id") == uid), None)
+    current_user = g.get("current_user")
     is_admin = bool(current_user and current_user.get("is_admin", False))
 
     if 0 <= index < len(notes):
         item = notes[index]
 
-        # suport 2 formate: dict nou sau string vechi
         if isinstance(item, dict):
             is_owner = (item.get("user_id") == uid)
         else:
-            is_owner = True  # pentru formatul vechi nu ai ownership real
+            is_owner = True  # format vechi: nu există ownership real
 
         if not (is_admin or is_owner):
             flash("You are not allowed to delete this note.", "error")
@@ -1609,14 +1423,10 @@ def weather_delete(index):
         flash("Weather note deleted.", "success")
 
     return redirect(url_for("weather"))
+# //doneee
 
-
-
-@app.route("/settings")
-def settings():
-    data = load_data()
-
-    summary = {
+def build_summary(data: dict) -> dict:
+    return {
         "voyages": len(data.get("voyages", [])),
         "routes": len(data.get("routes", [])),
         "log_entries": len(data.get("log_entries", [])),
@@ -1625,13 +1435,17 @@ def settings():
         "weather_notes": len(data.get("weather_notes", [])),
     }
 
-    # la GET simplu nu avem mesaje de import
+
+@app.route("/settings")
+def settings():
+    data = load_data()
     return render_template(
         "settings.html",
-        summary=summary,
+        summary=build_summary(data),
         import_error=None,
         import_success=False,
     )
+
 
 @app.route("/settings/export")
 def export_settings():
@@ -1641,23 +1455,14 @@ def export_settings():
     response = make_response(json_text)
     response.headers["Content-Disposition"] = "attachment; filename=ned_data.json"
     response.headers["Content-Type"] = "application/json; charset=utf-8"
-
     return response
+
 
 @app.route("/settings/import", methods=["POST"])
 def import_settings():
     raw_json = request.form.get("json_content", "").strip()
-
     data = load_data()
-
-    summary = {
-        "voyages": len(data.get("voyages", [])),
-        "routes": len(data.get("routes", [])),
-        "log_entries": len(data.get("log_entries", [])),
-        "contacts": len(data.get("contacts", [])),
-        "personal_contacts": len(data.get("personal_contacts", [])),
-        "weather_notes": len(data.get("weather_notes", [])),
-    }
+    summary = build_summary(data)
 
     if not raw_json:
         return render_template(
@@ -1669,27 +1474,15 @@ def import_settings():
 
     try:
         new_data = json.loads(raw_json)
-
-        # opțional: mici verificări de structură
         if not isinstance(new_data, dict):
             raise ValueError("Top-level JSON must be an object (dictionary).")
 
         save_data(new_data)
 
-        # recalculează summary după import
         data = load_data()
-        summary = {
-            "voyages": len(data.get("voyages", [])),
-            "routes": len(data.get("routes", [])),
-            "log_entries": len(data.get("log_entries", [])),
-            "contacts": len(data.get("contacts", [])),
-            "personal_contacts": len(data.get("personal_contacts", [])),
-            "weather_notes": len(data.get("weather_notes", [])),
-        }
-
         return render_template(
             "settings.html",
-            summary=summary,
+            summary=build_summary(data),
             import_error=None,
             import_success=True,
         )
@@ -1702,11 +1495,10 @@ def import_settings():
             import_success=False,
         )
 
+
 @app.route("/settings/reset", methods=["POST"])
 def reset_settings():
     data = load_data()
-
-    # păstrăm official contacts, restul listelor le golim
     contacts = data.get("contacts", [])
 
     new_data = {
@@ -1720,26 +1512,22 @@ def reset_settings():
 
     save_data(new_data)
 
-    summary = {
-        "voyages": 0,
-        "routes": 0,
-        "log_entries": 0,
-        "contacts": len(contacts),
-        "personal_contacts": 0,
-        "weather_notes": 0,
-    }
-
     return render_template(
         "settings.html",
-        summary=summary,
+        summary={
+            "voyages": 0,
+            "routes": 0,
+            "log_entries": 0,
+            "contacts": len(contacts),
+            "personal_contacts": 0,
+            "weather_notes": 0,
+        },
         import_error=None,
         import_success=False,
     )
 
+
 def get_phrasebook():
-    # NOTE: Keep this list simple now; we can expand later.
-    # For safety/accuracy, translations beyond EN are left blank for now,
-    # and can be filled/validated later.
     return [
         {
             "ro": "Bună ziua, domnule căpitan, sunt nava ...",
@@ -1814,20 +1602,17 @@ def get_phrasebook():
             "hu": "",
         },
     ]
-
-
+# /doneee
 @app.route("/help")
 def help_page():
-    phrases = get_phrasebook()
-    return render_template("help.html", phrases=phrases)
+    return render_template("help.html", phrases=get_phrasebook())
+
 
 @app.route("/api/locations/suggest")
 def api_locations_suggest():
     q = request.args.get("q", "").strip()
     locations_path = os.path.join(app.root_path, "data", "locations.json")
-    results = suggest_locations(q, locations_path, limit=10)
-    return {"results": results}
-
+    return {"results": suggest_locations(q, locations_path, limit=10)}
 
 
 @app.route("/route/<int:route_id>/map")
@@ -1854,7 +1639,7 @@ def route_map(route_id):
 @app.route("/route/chat/<int:route_id>", methods=["GET", "POST"])
 def route_chat(route_id):
     data = load_data()
-    data = ensure_route_ids(data)  # se asigură că toate rutele au id
+    data = ensure_route_ids(data)
     routes = data.get("routes", [])
 
     route = next((r for r in routes if r.get("id") == route_id), None)
@@ -1862,7 +1647,6 @@ def route_chat(route_id):
         flash("Route not found.", "error")
         return redirect(url_for("route_planner"))
 
-    # guest poate vedea, doar user logat poate posta
     if request.method == "POST":
         if not session.get("user_id"):
             flash("Please log in to post in route chat.", "error")
@@ -1880,6 +1664,7 @@ def route_chat(route_id):
             author_id=session.get("user_id"),
             text=text,
         )
+
         if ok:
             save_data(data)
         else:
@@ -1889,15 +1674,16 @@ def route_chat(route_id):
 
     messages = route.get("chat", [])
     related_routes = related_routes_for(routes, route, limit=10)
-    messages = route.get("chat", [])
+
     return render_template(
-    "chat.html",
-    route=route,
-    messages=messages,
-    related_routes=related_routes,
-    is_admin=is_admin_user(data),
-    current_username=session.get("username")
-)
+        "chat.html",
+        route=route,
+        messages=messages,
+        related_routes=related_routes,
+        is_admin=is_admin_user(data),
+        current_username=session.get("username"),
+    )
+
 
 @app.route("/route/chat/<int:route_id>/delete/<int:msg_id>", methods=["POST"])
 def admin_delete_route_message(route_id, msg_id):
@@ -1929,32 +1715,28 @@ def delete_route(route_id):
     if not uid:
         return redirect(url_for("login"))
 
-    users = data.get("users", [])
-    routes = data.get("routes", [])
-
-    current_user = next((u for u in users if u.get("id") == uid), None)
+    current_user = g.get("current_user")
     if not current_user:
         return redirect(url_for("login"))
 
+    routes = data.get("routes", [])
     route = next((r for r in routes if r.get("id") == route_id), None)
     if not route:
         flash("Route not found.", "error")
         return redirect(url_for("route_planner"))
 
-    # PERMISIUNI — IDENTIC CA LOGICĂ
-    is_admin = current_user.get("is_admin", False)
-    is_owner = route.get("author_id") == uid
-
+    is_admin = bool(current_user.get("is_admin", False))
+    is_owner = (route.get("author_id") == uid)
     if not (is_admin or is_owner):
         flash("You are not allowed to delete this route.", "error")
         return redirect(url_for("route_planner"))
 
-    # ștergere rută
     data["routes"] = [r for r in routes if r.get("id") != route_id]
     save_data(data)
 
     flash("Route deleted.", "success")
     return redirect(url_for("route_planner"))
+
 
 @app.route("/communication")
 def communication():
@@ -1971,7 +1753,7 @@ def communication():
         categories=categories,
         phrases=phrases,
         selected_category=category,
-        q=q
+        q=q,
     )
 
 
@@ -1984,13 +1766,11 @@ def mark_route_done(route_id):
     data = load_data()
     data = ensure_route_ids(data)
 
-    users = data.get("users", [])
-    routes = data.get("routes", [])
-
-    current_user = next((u for u in users if u.get("id") == uid), None)
+    current_user = g.get("current_user")
     if not current_user:
         return redirect(url_for("login"))
 
+    routes = data.get("routes", [])
     route = next((r for r in routes if r.get("id") == route_id), None)
     if not route:
         flash("Route not found.", "error")
@@ -2004,15 +1784,13 @@ def mark_route_done(route_id):
 
     route["status"] = "done"
     route["done_at"] = datetime.utcnow().isoformat()
-    
-    voyages = data.get("voyages", [])
 
+    voyages = data.get("voyages", [])
     already = next((v for v in voyages if v.get("source_route_id") == route_id), None)
+
     if not already:
-        next_vid = 1
-        if voyages:
-            vids = [v.get("id", 0) for v in voyages if isinstance(v.get("id", 0), int)]
-            next_vid = max(vids) + 1 if vids else 1
+        vids = [v.get("id", 0) for v in voyages if isinstance(v.get("id", 0), int)]
+        next_vid = (max(vids) + 1) if vids else 1
 
         voyage = {
             "id": next_vid,
@@ -2022,7 +1800,7 @@ def mark_route_done(route_id):
             "destination": route.get("destination", ""),
             "author": route.get("author", ""),
             "author_id": route.get("author_id"),
-            "user_id": route.get("author_id"),  # compat cu voyage_sheet-ul tău
+            "user_id": route.get("author_id"),
             "created_at": datetime.utcnow().isoformat(),
             "done_at": route.get("done_at"),
             "notes": "",
@@ -2036,22 +1814,17 @@ def mark_route_done(route_id):
 
         voyages.append(voyage)
         data["voyages"] = voyages
-        created_id = next_vid
-    else:
-        created_id = already.get("id")
 
     save_data(data)
-
     flash("Route marked as DONE.", "success")
-    
-    # du userul direct la voyage (cel creat)
-    voyages = data.get("voyages", [])
-    created = next((v for v in voyages if v.get("source_route_id") == route_id), None)
+
+    created = next((v for v in data.get("voyages", []) if v.get("source_route_id") == route_id), None)
     if created:
         return redirect(url_for("voyage_detail", voyage_id=created["id"]))
-    return redirect(url_for("route_planner"))
 
+    return redirect(url_for("route_planner"))
 
 
 if __name__ == "__main__":
     app.run(debug=True)
+

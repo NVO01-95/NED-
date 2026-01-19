@@ -1,0 +1,53 @@
+/* base.css */
+
+:root{
+  --container: 1180px;
+
+  --bg: #f7f9fc;
+  --card: #ffffff;
+  --text: #0f172a;
+  --muted: #64748b;
+  --border: #e7edf6;
+
+  --navy: #0b2a4a;
+
+  --radius: 14px;
+}
+
+* { box-sizing: border-box; }
+
+body{
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial, Helvetica, sans-serif;
+  color: var(--text);
+  padding-bottom: 40px;
+
+  /* artistic background */
+  background:
+    radial-gradient(1200px 600px at 20% 10%, rgba(11,42,74,0.10), transparent 60%),
+    radial-gradient(900px 500px at 80% 20%, rgba(59,130,246,0.10), transparent 60%),
+    radial-gradient(900px 500px at 50% 90%, rgba(16,185,129,0.08), transparent 60%),
+    var(--bg);
+}
+
+a{
+  color: #003366;
+  text-decoration: none;
+}
+a:hover{ color: #002348; }
+
+.ned-main{
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 18px 16px 34px;
+}
+
+.small-hint{
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+@media (max-width: 720px){
+  .ned-main{ padding: 14px 14px 34px; }
+}

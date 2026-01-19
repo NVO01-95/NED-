@@ -72,39 +72,82 @@
 </section>
 {% endif %}
 
-<!-- STATS (animated on scroll) -->
-<section class="ned-card stats-wrap" id="stats">
+<!-- ===================== STATS (animated on scroll) ===================== -->
+<section class="ned-card stats-wrap">
   <div class="stats-head">
-    <h3>Live Dashboard Impact</h3>
-    <p class="small-hint">Quick proof points (local / offline). Numbers animate when you scroll here.</p>
+    <div>
+      <h3 style="margin:0;">NED in numbers</h3>
+      <p class="small-hint" style="margin:6px 0 0;">
+        Quick snapshot of your activity and what NED helps with.
+      </p>
+    </div>
   </div>
 
   <div class="stats-grid">
     <div class="stat">
-      <div class="stat-value" data-count="92" data-suffix="%">0%</div>
-      <div class="stat-label">Checklist completion</div>
-      <div class="stat-sub">Before departure</div>
-    </div>
-
-    <div class="stat">
-      <div class="stat-value" data-count="120" data-suffix="+">0+</div>
-      <div class="stat-label">Routes planned</div>
-      <div class="stat-sub">Templates & repeated passages</div>
-    </div>
-
-    <div class="stat">
-      <div class="stat-value" data-count="38" data-suffix="">0</div>
-      <div class="stat-label">Ports / points</div>
+      <div class="stat-value" data-count="9" data-suffix="">0</div>
+      <div class="stat-label">Ports saved</div>
       <div class="stat-sub">Local locations database</div>
     </div>
 
     <div class="stat">
-      <div class="stat-value" data-count="15" data-suffix="s">0s</div>
-      <div class="stat-label">Average planning time</div>
-      <div class="stat-sub">To get a first route estimate</div>
+      <div class="stat-value" data-count="{{ summary.routes if summary else 0 }}" data-suffix="">0</div>
+      <div class="stat-label">Routes planned</div>
+      <div class="stat-sub">Reusable templates</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-value" data-count="{{ summary.voyages if summary else 0 }}" data-suffix="">0</div>
+      <div class="stat-label">Voyages logged</div>
+      <div class="stat-sub">Your voyage sheet</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-value" data-count="92" data-suffix="%">0%</div>
+      <div class="stat-label">Checklist readiness</div>
+      <div class="stat-sub">Example metric (customizable)</div>
     </div>
   </div>
 </section>
+
+<!-- ===================== TESTIMONIALS ===================== -->
+<section class="ned-card testi-wrap">
+  <div class="testi-head">
+    <div>
+      <h3 style="margin:0;">What users say</h3>
+      <p class="small-hint" style="margin:6px 0 0;">
+        Short feedback from small-craft and inland navigation use-cases.
+      </p>
+    </div>
+  </div>
+
+  <div class="testi-grid">
+    <div class="testi">
+      <p class="testi-text">“Route Planner is great for quick sanity checks before leaving the dock. Simple and clear.”</p>
+      <div class="testi-foot">
+        <span class="testi-name">Mihai · Small craft</span>
+        <span class="testi-tag">Danube</span>
+      </div>
+    </div>
+
+    <div class="testi">
+      <p class="testi-text">“I like having contacts + weather notes in the same place. Feels like a compact toolkit.”</p>
+      <div class="testi-foot">
+        <span class="testi-name">Andreea · Skipper</span>
+        <span class="testi-tag">Logbook</span>
+      </div>
+    </div>
+
+    <div class="testi">
+      <p class="testi-text">“The standard phrases help a lot when you pass mixed-language sectors. Very practical.”</p>
+      <div class="testi-foot">
+        <span class="testi-name">Alex · Inland crew</span>
+        <span class="testi-tag">Comms</span>
+      </div>
+    </div>
+  </div>
+</section>
+
 
 <!-- TESTIMONIALS -->
 <section class="ned-card testi-wrap" id="testimonials">
