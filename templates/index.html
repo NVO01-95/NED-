@@ -4,7 +4,7 @@
 
 {% block content %}
 
-{# ---------------- HERO (NEW) ---------------- #}
+{# ===================== HERO ===================== #}
 <section class="ned-hero">
   <div class="ned-hero-text">
     <h1>NED – Nautical Essential Dashboard</h1>
@@ -20,6 +20,11 @@
 
     <div class="hero-actions">
       <a href="{{ url_for('route_planner') }}" class="btn">Start Route Planning</a>
+
+      {# Optional: un CTA secundar doar pentru useri logati #}
+      {% if current_username %}
+        <a href="{{ url_for('voyage_sheet') }}" class="btn btn-secondary">Open Voyage Sheet</a>
+      {% endif %}
     </div>
 
     {% if current_username %}
@@ -45,34 +50,7 @@
   </div>
 </section>
 
-{# ---------------- ORIGINAL INTRO (kept, but smaller) ---------------- #}
-
-{% if summary %}
-<section class="home-stats">
-  <div class="home-stat-card">
-    <div class="home-stat-label">Voyages</div>
-    <div class="home-stat-value">{{ summary.voyages }}</div>
-  </div>
-  <div class="home-stat-card">
-    <div class="home-stat-label">Routes</div>
-    <div class="home-stat-value">{{ summary.routes }}</div>
-  </div>
-  <div class="home-stat-card">
-    <div class="home-stat-label">Logbook entries</div>
-    <div class="home-stat-value">{{ summary.log_entries }}</div>
-  </div>
-  <div class="home-stat-card">
-    <div class="home-stat-label">Contacts</div>
-    <div class="home-stat-value">{{ summary.contacts }}</div>
-  </div>
-  <div class="home-stat-card">
-    <div class="home-stat-label">Weather notes</div>
-    <div class="home-stat-value">{{ summary.weather_notes }}</div>
-  </div>
-</section>
-{% endif %}
-
-<!-- ===================== STATS (animated on scroll) ===================== -->
+{# ===================== STATS (animated on scroll) ===================== #}
 <section class="ned-card stats-wrap">
   <div class="stats-head">
     <div>
@@ -110,50 +88,15 @@
   </div>
 </section>
 
-<!-- ===================== TESTIMONIALS ===================== -->
-<section class="ned-card testi-wrap">
+{# ===================== TESTIMONIALS (single section) ===================== #}
+<section class="ned-card testi-wrap" id="testimonials">
   <div class="testi-head">
     <div>
       <h3 style="margin:0;">What users say</h3>
       <p class="small-hint" style="margin:6px 0 0;">
-        Short feedback from small-craft and inland navigation use-cases.
+        Short feedback from small craft users & inland crews.
       </p>
     </div>
-  </div>
-
-  <div class="testi-grid">
-    <div class="testi">
-      <p class="testi-text">“Route Planner is great for quick sanity checks before leaving the dock. Simple and clear.”</p>
-      <div class="testi-foot">
-        <span class="testi-name">Mihai · Small craft</span>
-        <span class="testi-tag">Danube</span>
-      </div>
-    </div>
-
-    <div class="testi">
-      <p class="testi-text">“I like having contacts + weather notes in the same place. Feels like a compact toolkit.”</p>
-      <div class="testi-foot">
-        <span class="testi-name">Andreea · Skipper</span>
-        <span class="testi-tag">Logbook</span>
-      </div>
-    </div>
-
-    <div class="testi">
-      <p class="testi-text">“The standard phrases help a lot when you pass mixed-language sectors. Very practical.”</p>
-      <div class="testi-foot">
-        <span class="testi-name">Alex · Inland crew</span>
-        <span class="testi-tag">Comms</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-
-<!-- TESTIMONIALS -->
-<section class="ned-card testi-wrap" id="testimonials">
-  <div class="testi-head">
-    <h3>What mariners say</h3>
-    <p class="small-hint">Short feedback from small craft users & inland crews.</p>
   </div>
 
   <div class="testi-grid">
@@ -183,20 +126,8 @@
   </div>
 </section>
 
-
+{# ===================== QUICK TILES (NO DUPLICATES) ===================== #}
 <section class="home-grid modern-tiles">
-  <a class="tile ned-card" href="{{ url_for('route_planner') }}">
-    <div class="tile-badge">Route</div>
-    <h3>Route Planner</h3>
-    <p>Build routes from coordinates or local places. Export, map & chat per route.</p>
-  </a>
-
-  <a class="tile ned-card" href="{{ url_for('voyage_sheet') }}">
-    <div class="tile-badge">Voyage</div>
-    <h3>Voyage Sheet</h3>
-    <p>Prepare departure/arrival details, ETD/ETA, distance and practical notes.</p>
-  </a>
-
   <a class="tile ned-card" href="{{ url_for('logbook') }}">
     <div class="tile-badge">Log</div>
     <h3>Logbook</h3>
@@ -215,6 +146,18 @@
     <p>Quick links to sources + your own observations and situational notes.</p>
   </a>
 
+  <a class="tile ned-card" href="{{ url_for('communication') }}">
+    <div class="tile-badge">Comms</div>
+    <h3>Communication</h3>
+    <p>Phrases and quick notes for mixed-language sectors and port coordination.</p>
+  </a>
+
+  <a class="tile ned-card" href="{{ url_for('help_page') }}">
+    <div class="tile-badge">Help</div>
+    <h3>Help</h3>
+    <p>How to use NED, best practices, examples and quick tips.</p>
+  </a>
+
   {% if current_username %}
   <a class="tile ned-card" href="{{ url_for('settings') }}">
     <div class="tile-badge">Data</div>
@@ -224,7 +167,7 @@
   {% endif %}
 </section>
 
-
+{# ===================== OPTIONAL ANALYTICS ===================== #}
 {% if voyage_stats and voyage_stats.total_distance_nm > 0 %}
 <section class="ned-card">
   <h3>Voyage analytics</h3>
@@ -263,5 +206,40 @@
   {% endif %}
 </section>
 {% endif %}
+
+{# ===================== STATS COUNTER SCRIPT ===================== #}
+<script>
+(function(){
+  const els = document.querySelectorAll(".stat-value[data-count]");
+  if (!els.length) return;
+
+  function animate(el){
+    const target = parseFloat(el.dataset.count || "0");
+    const suffix = el.dataset.suffix || "";
+    const isPercent = suffix === "%";
+    const duration = 800;
+    const start = performance.now();
+
+    function tick(now){
+      const p = Math.min(1, (now - start) / duration);
+      const val = Math.round(target * p);
+      el.textContent = isPercent ? (val + "%") : (val + suffix);
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting && !e.target.dataset.done){
+        e.target.dataset.done = "1";
+        animate(e.target);
+      }
+    });
+  }, { threshold: 0.35 });
+
+  els.forEach(el => io.observe(el));
+})();
+</script>
 
 {% endblock %}
